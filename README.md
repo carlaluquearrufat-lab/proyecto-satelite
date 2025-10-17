@@ -1,4 +1,6 @@
 # Código relevante: 
+
+
 plt.ion()
 plt.axis([0, 100, 20, 100])
 temperaturas = []
@@ -7,7 +9,6 @@ i = 0
 humedades = []
 eje_x2 = []
 n = 0
-
 grafica = False
 grafica2 = False
 
@@ -56,7 +57,6 @@ def iniciar_grafica2():
                 plt.plot(eje_x2, humedades)
                 plt.draw()
                 plt.pause(0.5)
-
 
 def TEMPClick():
     global grafica
