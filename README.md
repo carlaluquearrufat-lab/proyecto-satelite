@@ -1,6 +1,4 @@
 # Código relevante: 
-
-
 plt.ion()
 plt.axis([0, 100, 20, 100])
 temperaturas = []
