@@ -28,6 +28,7 @@ def iniciar_grafica2():
 
             trozos2 = linea.split('H:')    
             
+             # Evitar errores si la línea no tiene el formato
             if len(trozos2) < 2:
                 print("Línea ignorada (mal formato):", linea)
                 continue
