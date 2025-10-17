@@ -1,3 +1,4 @@
+//Test unitario
 #include <SoftwareSerial.h>
 int i;
 SoftwareSerial mySerial(10,11); //RX,TX
