@@ -96,3 +96,6 @@ def iniciar_grafica():
 
             plt.draw()
             plt.pause(0.5)
+
+#Video introductorio de la versión 1:
+https://youtu.be/pAPxgO0p6xA
