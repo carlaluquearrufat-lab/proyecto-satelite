@@ -26,7 +26,6 @@ def iniciar_grafica2():
             linea = ser.readline().decode('utf-8').strip()
             print(linea)
 
-            # Evitar errores si la línea no tiene el formato 
             trozos2 = linea.split('H:')    
             
             if len(trozos2) < 2:
