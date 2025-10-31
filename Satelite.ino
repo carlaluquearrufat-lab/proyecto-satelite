@@ -34,9 +34,9 @@ void loop() {
    
    }else {
       mySerial.print("H: ");
-      mySerial.println(h);
+      mySerial.print(h);
       mySerial.print("T: ");
-      mySerial.print(t);
+      mySerial.println(t);
    
    
 
