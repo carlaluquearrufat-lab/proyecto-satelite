@@ -73,7 +73,21 @@ def STOPClick():
     global grafica
     grafica = False
     grafica2 = False
-    print("Gráficas detenida")
+    print("Transmisión detenida")
+    mensaje= "Parar"
+    mySerial.write(mensaje.encode('utf-8'))
+
+def REANUDARClick():
+    while True:
+    if mySerial.in_waiting > 0:
+      linea = mySerial.readline().decode('utf-8').rstrip()
+      print(linea)
+    global grafica 
+    global grafica2
+    grafica=True
+    grafica2=True
+    iniciar_grafica()  
+    iniciar_grafica2() 
 
 def iniciar_grafica():
     global i
@@ -104,7 +118,7 @@ def iniciar_grafica():
             plt.pause(0.5)
 
 window = Tk()
-window.geometry("400x400")
+window.geometry("400x500")
 window.rowconfigure(0, weight=1)
 window.rowconfigure(1, weight=1)
 window.rowconfigure(2, weight=1)
@@ -112,6 +126,7 @@ window.columnconfigure(0, weight=1)
 window.columnconfigure(1, weight=1)
 window.columnconfigure(2, weight=1)
 window.columnconfigure(3, weight=1)
+window.columnconfigure(4, weight=1)
 
 tituloLabel = Label(window, text = "VERSION 1", font=("Courier", 20, "italic"))
 tituloLabel.grid(row=0, column=0, columnspan=5, padx=5, pady=5, sticky=N + S + E + W)
@@ -130,5 +145,8 @@ HUMButton = Button(window, text="HUM", bg='red', fg="white", command = HUMClick)
 HUMButton.grid(row=2, column=2, padx=5, pady=5, sticky=N + S + E + W)
 DButton = Button(window, text="D", bg='orange', fg="black")
 DButton.grid(row=2, column=3, padx=5, pady=5, sticky=N + S + E + W)
+REANUDARButton = Button(window, text="REANUDAR", bg='green', fg="white",command=REANUDARClick)
+REANUDARButton.grid(row=2, column=4, padx=5, pady=5, sticky=N + S + E + W)
+
 
 window.mainloop()
