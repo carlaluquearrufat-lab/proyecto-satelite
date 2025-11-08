@@ -14,13 +14,17 @@ void loop() {
    if (mySerial.available()) {
       String data = mySerial.readString();
       Serial.print(data);
+      if (data= 'Fallo'){
+         digitalWrite(pinAlarma, HIGH);
+      digitalWrite(pinAlarma, HIGH);
+      }
+      else {
          digitalWrite(5, HIGH);
          delay(500);
          digitalWrite (5, LOW);
          delay(500);
+      }
    }
-   else {
-      digitalWrite(pinAlarma, HIGH);
-   }
-}
+ }
+
 
