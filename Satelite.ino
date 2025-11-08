@@ -41,7 +41,7 @@ void loop() {
       }
       //Si se capturan mal los datos más de tres veces enviamos mensaje para saltar alarma en tierra
       if (contador >= 3){
-         Serial.print ("Fallo");
+         mySerial.print ("Fallo");
       }
    }
    else {
