@@ -31,14 +31,11 @@ void loop() {
       digitalWrite(6, HIGH);
       delay(500);
       digitalWrite (6, LOW);
-   
-   }else {
+   }
+   else {
       mySerial.print("H: ");
       mySerial.print(h);
       mySerial.print("T: ");
       mySerial.println(t);
-   
-   
-
    }
 }
