@@ -11,7 +11,7 @@ void setup() {
    pinMode(pinAlarma, OUTPUT);
 }
 void loop() {
-   if (mySerial.available()) {
+   if (mySerial.available()) { 
       String data = mySerial.readString();
       Serial.print(data);
       if (data == 'Fallo'){
