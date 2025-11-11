@@ -1,152 +1,177 @@
 from tkinter import *
-import matplotlib.pyplot as plt
-import serial
-device = 'COM6'
-ser = serial.Serial(device,9600)
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import serial, threading
+import math
 
-plt.ion()
-plt.axis([0, 100, 20, 100])
+device = 'COM7'
+ser = serial.Serial(device, 9600)
+
 temperaturas = []
-eje_x = []
-i = 0
 humedades = []
+eje_x = []
 eje_x2 = []
+i = 0
 n = 0
-
 grafica = False
 grafica2 = False
+grafica3 = False
 
-def EntrarClick ():
-    print ('Has introducido la frase --- ' + fraseEntry.get() + ' --- y has pulsado el botón entrar')
+# Canvas y figura para matplotlib integrados en Tkinter
+canvas = None
+fig = None
+ax = None
 
-def HUMClick():
-    global grafica2
-    grafica2 = True
-    iniciar_grafica2()  
-
-def iniciar_grafica2():
-    global n
-    global grafica2
-    while grafica2 == True:
-        if ser.in_waiting > 0:
-            linea = ser.readline().decode('utf-8').strip()
-            print(linea)
-
-            # Evitar errores si la línea no tiene el formato 
-            trozos2 = linea.split('H:')    
-            
-            if len(trozos2) < 2:
-                print("Línea ignorada (mal formato):", linea)
-                continue
-            try:
-                humedad = float(trozos2[1])
-            except ValueError:
-                print("Error al convertir a número:", trozos2[1])
-                continue
-
-            # Usar eje_x2 y aumentar n (antes no se aumentaba)
-            humedades.append(humedad)
-            eje_x2.append(n)
-            n += 1
-
-            # Evitar plot con ejes de distinto tamaño
-            if len(eje_x2) == len(humedades):
-                plt.figure(1)  # aseguramos figura (opcional)
-                plt.plot(eje_x2, humedades)
-                plt.draw()
-                plt.pause(0.5)
-            else:
-                # por seguridad, dibujamos solo los datos disponibles
-                plt.figure(1)
-                plt.plot(eje_x2, humedades)
-                plt.draw()
-                plt.pause(0.5)
-
+def init_grafica_if_needed():
+    global canvas, fig, ax
+    if canvas is None:
+        fig = Figure(figsize=(8,4), dpi=100)
+        ax = fig.add_subplot(111)
+        ax.set_facecolor('#FFFFFF')
+        canvas = FigureCanvasTkAgg(fig, master=plot_frame)
+        canvas.get_tk_widget().pack(fill='both', expand=True)
 
 def TEMPClick():
     global grafica
     grafica = True
-    iniciar_grafica()  
+    init_grafica_if_needed()
+    threading.Thread(target=iniciar_grafica, daemon=True).start()
+
+def HUMClick():
+    global grafica2
+    grafica2 = True
+    init_grafica_if_needed()
+    threading.Thread(target=iniciar_grafica2, daemon=True).start()
 
 def STOPClick():
-    global grafica2
-    global grafica
+    global grafica, grafica2
     grafica = False
     grafica2 = False
-    print("Transmisión detenida")
-    mensaje= "Parar"
-    mySerial.write(mensaje.encode('utf-8'))
-
-def REANUDARClick():
-    while True:
-    if mySerial.in_waiting > 0:
-      linea = mySerial.readline().decode('utf-8').rstrip()
-      print(linea)
-    global grafica 
-    global grafica2
-    grafica=True
-    grafica2=True
-    iniciar_grafica()  
-    iniciar_grafica2() 
+    grafica3 = False
 
 def iniciar_grafica():
     global i
-    while grafica == True:
+    while grafica:
         if ser.in_waiting > 0:
-            linea = ser.readline().decode('utf-8').strip()
-            print(linea)
-
-            # Evitar errores si la línea no tiene el formato 
-            trozos = linea.split('T:')    
-            
-            if len(trozos) < 2:
-                print("Línea ignorada (mal formato):", linea)
+            linea = ser.readline().decode().strip()
+            trozos = linea.split('T:')
+            if len(trozos) < 2: 
                 continue
             try:
                 temperatura = float(trozos[1])
-            except ValueError:
-                print("Error al convertir a número:", trozos[1])
+            except:
                 continue
-
-            eje_x.append(i)
             temperaturas.append(temperatura)
-            plt.plot(eje_x, temperaturas)
-            plt.title(str(i))
+            eje_x.append(i)
             i += 1
+            # actualizar gráfica
+            ax.clear()
+            ax.plot(eje_x, temperaturas, color='blue', label='TEMPERATURA')
+            if len(temperaturas) >= 10:
+                media_linea = [sum(temperaturas[-10:])/10.0]*len(temperaturas)
+                ax.plot(eje_x, media_linea, color='green', label='MEDIA 10')
+            ax.legend()
+            canvas.draw_idle()
 
-            plt.draw()
-            plt.pause(0.5)
+def iniciar_grafica2():
+    global n
+    while grafica2:
+        if ser.in_waiting > 0:
+            linea = ser.readline().decode().strip()
+            trozos = linea.split('H:')
+            if len(trozos) < 2: 
+                continue
+            try:
+                humedad = float(trozos[1])
+            except:
+                continue
+            humedades.append(humedad)
+            eje_x2.append(n)
+            n += 1
+            # actualizar gráfica
+            ax.clear()
+            ax.plot(eje_x2, humedades, color='red', label='HUMEDAD')
+            ax.legend()
+            canvas.draw_idle()
+
+def GRAFClick():
+    global grafica3
+    grafica3 = True
+    init_grafica_if_needed()  # inicializa gráfica solo la primera vez
+    threading.Thread(target=iniciar_grafica3, daemon=True).start()
+
+def iniciar_grafica3():
+    global n, grafica3
+    while grafica3:
+        if ser.in_waiting > 0:
+            linea = ser.readline().decode().strip()
+            trozos_h = linea.split('H:')
+            if len(trozos_h) >= 2:
+                try:
+                    humedad = float(trozos_h[1])
+                    humedades.append(humedad)
+                    eje_x2.append(n)
+                    n += 1
+                except:
+                    pass
+
+            linea = ser.readline().decode().strip()
+            trozos_t = linea.split('T:')
+            if len(trozos_t) >= 2:
+                try:
+                    temperatura = float(trozos_t[1])
+                    temperaturas.append(temperatura)
+                    eje_x.append(len(temperaturas)-1)
+                except:
+                    pass
+
+            # actualizar gráfica integrada
+            ax.clear()
+            ax.plot(eje_x, temperaturas, color='blue', label='TEMPERATURA')
+            ax.plot(eje_x2, humedades, color='red', label='HUMEDAD')
+            if len(temperaturas) >= 10:
+                media_linea = [sum(temperaturas[-10:])/10.0]*len(temperaturas)
+                ax.plot(eje_x, media_linea, color='green', label='MEDIA 10')
+            ax.legend()
+            canvas.draw_idle()
+
 
 window = Tk()
-window.geometry("400x500")
+window.geometry("1280x720")
 window.rowconfigure(0, weight=1)
 window.rowconfigure(1, weight=1)
 window.rowconfigure(2, weight=1)
+window.rowconfigure(3, weight=6)
 window.columnconfigure(0, weight=1)
 window.columnconfigure(1, weight=1)
 window.columnconfigure(2, weight=1)
 window.columnconfigure(3, weight=1)
-window.columnconfigure(4, weight=1)
 
-tituloLabel = Label(window, text = "VERSION 1", font=("Courier", 20, "italic"))
-tituloLabel.grid(row=0, column=0, columnspan=5, padx=5, pady=5, sticky=N + S + E + W)
+tituloLabel = Label(window, text="VERSION 2", font=("Times New Roman", 20, "bold"))
+tituloLabel.grid(row=0, column=0, columnspan=5, padx=5, pady=5, sticky=N+S+E+W)
 
-fraseEntry = Entry(window)
-fraseEntry.grid(row=1, column=0, columnspan = 3, padx=5, pady=5, sticky=N + S + E + W)
+# Formato botones
+botones = {
+    'width': 12,
+    'height': 2,
+    'font': ("Arial", 11, "bold"),
+    'relief': 'raised',
+    'bd': 3
+}
 
-EntrarButton = Button(window, text="Entrar", bg='red', fg="white",command=EntrarClick)
-EntrarButton.grid(row=1, column=3, padx=5, pady=5, sticky=N + S + E + W)
+TEMPButton = Button(window, text="TEMP.", command=TEMPClick, bg='blue', fg='white', **botones)
+TEMPButton.grid(row=2, column=0, padx=5, pady=5, sticky=N+S+E+W)
+HUMButton = Button(window, text="HUM", command=HUMClick, bg='red', fg='white', **botones)
+HUMButton.grid(row=2, column=2, padx=5, pady=5, sticky=N+S+E+W)
+GRAFButton = Button(window, text="GRAFICA", command=GRAFClick, bg='orange', fg='black', **botones)
+GRAFButton.grid(row=2, column=3, padx=5, pady=5, sticky=N+S+E+W)
+STOPButton = Button(window, text="STOP", command=STOPClick, bg='purple', fg='white', **botones)
+STOPButton.grid(row=2, column=1, padx=5, pady=5, sticky=N+S+E+W)
+RADARButton = Button(window, text="RADAR", command=RADARClick, bg='green', fg='white', **botones)
+RADARButton.grid(row=2, column=4, padx=5, pady=5, sticky=N+S+E+W)
 
-TEMPButton = Button(window, text="TEMP.", bg='blue', fg="white",command=TEMPClick)
-TEMPButton.grid(row=2, column=0, padx=5, pady=5, sticky=N + S + E + W)
-STOPButton = Button(window, text="STOP", bg='purple', fg="white", command = STOPClick)
-STOPButton.grid(row=2, column=1, padx=5, pady=5, sticky=N + S + E + W)
-HUMButton = Button(window, text="HUM", bg='red', fg="white", command = HUMClick)
-HUMButton.grid(row=2, column=2, padx=5, pady=5, sticky=N + S + E + W)
-DButton = Button(window, text="D", bg='orange', fg="black")
-DButton.grid(row=2, column=3, padx=5, pady=5, sticky=N + S + E + W)
-REANUDARButton = Button(window, text="REANUDAR", bg='green', fg="white",command=REANUDARClick)
-REANUDARButton.grid(row=2, column=4, padx=5, pady=5, sticky=N + S + E + W)
-
+plot_frame = Frame(window)
+plot_frame.grid(row=3, column=0, columnspan=4, sticky=N+S+E+W, padx=5, pady=5)
 
 window.mainloop()
+
