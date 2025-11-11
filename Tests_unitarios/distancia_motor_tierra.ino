@@ -1,4 +1,6 @@
-lvoid setup() {
+#include <SoftwareSerial.h>
+int LED= 5;
+void setup() {
   Serial.begin(9600);  // Comunicación con satélite
   Serial.println("Estacion de tierra lista");
   Serial.println ("Ingrese un angulo (0-180) y presione enviar:");
@@ -30,6 +32,12 @@ void loop() {
     if (datos.length() > 0) {
       Serial.print("Datos recibidos del satelite: ");
       Serial.println(datos);
-    }
+      if (datos == 'Error en los datos de distancia'){
+        digitalWrite (LED, HIGH);
+        delay (500);
+        digitalWrite (LED, LOW);
+        delay (500);
+      }
+    }  
   }
 }
