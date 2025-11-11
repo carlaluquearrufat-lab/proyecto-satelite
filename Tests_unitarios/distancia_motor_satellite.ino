@@ -22,7 +22,7 @@ void setup() {
   pinMode(LED, OUTPUT);
   digitalWrite(TRIG, LOW); // asegurar TRIG en LOW al inicio
   servo.attach (13);
-  Serial.begin(9600);
+  mySerial.begin(9600);
   
 }
 
@@ -33,8 +33,8 @@ void loop(){
       anguloManual = comando;
       modoManual = true;             // activar modo manual
       servo.write(anguloManual);
-      Serial.print("Servo movido a: ");
-      Serial.println(anguloManual);
+      mySerial.print("Servo movido a: ");
+      mySerial.println(anguloManual);
     }
   }
 
@@ -47,12 +47,12 @@ void loop(){
 
   DURACION = pulseIn(ECO, HIGH, 30000UL);
   if (DURACION == 0) {
-    Serial.println("No echo (timeout)");
+    mySerial.println("No echo (timeout)");
     digitalWrite(LED, LOW);
   } else {
     DISTANCIA = DURACION / 58.2;
-    Serial.print("Distancia (cm): ");
-    Serial.println(DISTANCIA);
+    mySerial.print("Distancia (cm): ");
+    mySerial.println(DISTANCIA);
 
     digitalWrite(LED, (DISTANCIA < 20.0) ? HIGH : LOW);
   }
