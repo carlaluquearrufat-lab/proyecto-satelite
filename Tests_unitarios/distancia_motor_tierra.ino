@@ -1,27 +1,30 @@
-void setup() {
+lvoid setup() {
   Serial.begin(9600);  // Comunicación con satélite
   Serial.println("Estacion de tierra lista");
+  Serial.println ("Ingrese un angulo (0-180) y presione enviar:");
 }
 
 void loop() {
-  // --- 1️⃣ Leer datos desde la estación (PC) ---
+  // Leer datos desde la estación
   if (Serial.available() > 0) {
     String input = Serial.readStringUntil('\n'); // leer línea completa
-    input.trim(); // limpiar espacios
+    input.trim();
 
-    int angulo = input.toInt(); // convertir a número
-    if (angulo >= 0 && angulo <= 180) {
-      // --- 2️⃣ Enviar al satélite ---
-      Serial.println(angulo); // enviar el ángulo al satélite
-      Serial.print("Enviado al satelite: ");
-      Serial.println(angulo);
-    } else {
-      Serial.println("Angulo invalido, ingrese 0-180");
+  if (input.length() > 0) {
+      int angulo = input.toInt();
+      if (angulo >= 0 && angulo <= 180) {
+        // Enviar al satélite
+        Serial.println(angulo);
+        Serial.print("Enviado al satelite: ");
+        Serial.println(angulo);
+      } else {
+        Serial.println("Angulo invalido, ingrese un valor entre 0 y 180");
+      }
     }
   }
 
-  // --- 3️⃣ Recibir datos del satélite ---
-  if (Serial.available() > 0) {
+  // Recibir datos del satélite ---
+  while (Serial.available() > 0) {
     String datos = Serial.readStringUntil('\n');
     datos.trim();
     if (datos.length() > 0) {
@@ -30,4 +33,3 @@ void loop() {
     }
   }
 }
-
