@@ -6,7 +6,15 @@ int LED = 3;
 // Mínimo cambio: usar tipo adecuado para pulseIn
 unsigned long DURACION;
 float DISTANCIA;
+//modo automatico
 int angulo = 0;
+bool subiendo=true;
+//modo manual
+bool modoManual = false;
+int anguloManual = 0;
+
+unsigned long tiempoAnterior = 0;
+const int intervaloServo = 50; 
 
 void setup() {
   pinMode(TRIG, OUTPUT);
@@ -18,51 +26,59 @@ void setup() {
   
 }
 
-void loop() {
-  // Generar pulso de trigger correcto (10 microsegundos)
+void loop(){
+  if (Serial.available() > 0) {
+    int comando = Serial.parseInt(); // leer ángulo
+    if (comando >= 0 && comando <= 180) {
+      anguloManual = comando;
+      modoManual = true;             // activar modo manual
+      servo.write(anguloManual);
+      Serial.print("Servo movido a: ");
+      Serial.println(anguloManual);
+    }
+  }
+
+  //Medir distancia 
   digitalWrite(TRIG, LOW);
   delayMicroseconds(2);
   digitalWrite(TRIG, HIGH);
-  delayMicroseconds(10);  // <-- CAMBIO: usar microsegundos, no delay(1)
+  delayMicroseconds(10);
   digitalWrite(TRIG, LOW);
 
-  // Leer duración (añadido timeout para no bloquear)
-  DURACION = pulseIn(ECO, HIGH, 30000UL); // timeout 30 ms
-
+  DURACION = pulseIn(ECO, HIGH, 30000UL);
   if (DURACION == 0) {
     Serial.println("No echo (timeout)");
     digitalWrite(LED, LOW);
   } else {
-    DISTANCIA = DURACION / 58.2; // conversión a cm
-    Serial.print("Dur (us): ");
-    Serial.print(DURACION);
-    Serial.print("  Dist (cm): ");
+    DISTANCIA = DURACION / 58.2;
+    Serial.print("Distancia (cm): ");
     Serial.println(DISTANCIA);
 
-    if (DISTANCIA < 20.0) digitalWrite(LED, HIGH);
-    else digitalWrite(LED, LOW);
+    digitalWrite(LED, (DISTANCIA < 20.0) ? HIGH : LOW);
   }
 
-  if (Serial.available() > 0) {
-    int comando = Serial.parseInt();  // leer un número enviado
-    if (comando >= 0 && comando <= 180) {
-      servo.write(comando);          // mover servo al ángulo deseado
-      Serial.print("Servo movido a: ");
-      Serial.println(comando);
+  // Motor automático
+  if (!modoManual) {
+    unsigned long tiempoActual = millis();
+    if (tiempoActual - tiempoAnterior >= intervaloServo) {
+      tiempoAnterior = tiempoActual;
+
+      servo.write(angulo);
+
+      if (subiendo) angulo += 5;
+      else angulo -= 5;
+
+      if (angulo >= 180) subiendo = false;
+      if (angulo <= 0) subiendo = true;
+    }
+  } else {
+    // Mantener el ángulo manual un momento antes de volver a automático
+    // Por ejemplo, 3 segundos
+    static unsigned long tiempoManual = 0;
+    if (tiempoManual == 0) tiempoManual = millis();
+    if (millis() - tiempoManual > 3000) {
+      modoManual = false;
+      tiempoManual = 0;
     }
   }
-  delay(100);
-  // Mover de 0° a 180°
-  for (int angulo = 0; angulo <= 180; angulo += 10) {
-    servo.write(angulo);
-    delay(300);             
-  }
-
-  // Regresar de 180° a 0°
-  for (int angulo = 180; angulo >= 0; angulo -= 10) {
-    servo.write(angulo);
-    delay(300);
-  }
-
-  delay(200);
 }
