@@ -1,7 +1,8 @@
 #include <SoftwareSerial.h>
 int LED= 5;
 void setup() {
-  Serial.begin(9600);  // Comunicación con satélite
+  Serial.begin(9600);
+  mySerial.begin(9600);// Comunicación con satélite
   Serial.println("Estacion de tierra lista");
   Serial.println ("Ingrese un angulo (0-180) y presione enviar:");
 }
@@ -17,8 +18,8 @@ void loop() {
       if (angulo >= 0 && angulo <= 180) {
         // Enviar al satélite
         Serial.println(angulo);
-        Serial.print("Enviado al satelite: ");
-        Serial.println(angulo);
+        mySerial.print("Enviado al satelite: ");
+        mySerial.println(angulo);
       } else {
         Serial.println("Angulo invalido, ingrese un valor entre 0 y 180");
       }
@@ -26,7 +27,7 @@ void loop() {
   }
 
   // Recibir datos del satélite ---
-  while (Serial.available() > 0) {
+  while (mySerial.available() > 0) {
     String datos = Serial.readStringUntil('\n');
     datos.trim();
     if (datos.length() > 0) {
