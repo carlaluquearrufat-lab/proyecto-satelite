@@ -28,7 +28,7 @@ void loop() {
 
   // Recibir datos del satélite ---
   while (mySerial.available() > 0) {
-    String datos = Serial.readStringUntil('\n');
+    String datos = mySerial.readStringUntil('\n');
     datos.trim();
     if (datos.length() > 0) {
       Serial.print("Datos recibidos del satelite: ");
