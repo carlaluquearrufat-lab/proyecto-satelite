@@ -19,9 +19,12 @@ void loop() {
         procesarMensajeSatelite(data);
 
         if (data == "Fallo") {
-            digitalWrite(pinAlarma, HIGH);
+            tone(pinAlarma, 1000);
+            delay(500);
+            noTone(pinAlarma);
+            delay(500);
         } else {
-            digitalWrite(pinAlarma, LOW);
+            noTone(pinAlarma);
             digitalWrite(5, HIGH);
             delay(500);
             digitalWrite(5, LOW);
