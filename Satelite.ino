@@ -11,7 +11,6 @@ const int ledExito = 4;
 const int ledError = 6;
 
 int i = 1;
-int contador = 0;
 int contadorError = 0;
 
 void setup() {
@@ -34,13 +33,15 @@ void loop() {
    // --- Clasificación de datos ---
    if (!isnan(h) && !isnan(t)) {
        // Datos correctos
-       contador = 0;
+       contadorError = 0;
 
        // LED éxito parpadea (igual que antes)
-       digitalWrite(ledExito, HIGH);
-       delay(500);
-       digitalWrite(ledExito, LOW);
-
+      while (contadorError==0){
+      digitalWrite(ledExito, HIGH);
+      delay(500);
+      digitalWrite(ledExito, LOW);
+      }
+          
        // Enviar datos clasificados
        mySerial.println("1:" + String(t)); // Temperatura
        mySerial.println("2:" + String(h)); // Humedad
@@ -51,16 +52,17 @@ void loop() {
        digitalWrite(ledExito, LOW);
 
        // LED error parpadea (igual que antes)
-       digitalWrite(ledError, HIGH);
-       delay(500);
-       digitalWrite(ledError, LOW);
+       while (contadorError!=0){
+          digitalWrite(ledError, HIGH);
+          delay(500);
+          digitalWrite(ledError, LOW);
+          }
 
        // CAMBIO: enviar mensaje de error clasificado
        mySerial.println("4:"); // Error de captura
 
        // Si hay 3 errores consecutivos, enviar "Fallo"
-       contador++;
-       if (contador >= 3) {
+       if (contadorError >= 3) {
            mySerial.println("Fallo");
        }
    }
