@@ -88,9 +88,7 @@ def lector_serial():
             time.sleep(0.2)
         time.sleep(0.01)
 
-# ============================
-# Graficado principal (mínimos cambios)
-# ============================
+
 def init_grafica_if_needed():
     global canvas, fig, ax
     if canvas is None:
