@@ -1,5 +1,7 @@
+# GRUPO 14
+![IMG_2547](https://github.com/user-attachments/assets/18c81932-ab38-4fac-8f1e-7fbd5b14daf9)
 # Código relevante: 
-                
+           
     plt.ion()
     plt.axis([0, 100, 20, 100])
     temperaturas = []
