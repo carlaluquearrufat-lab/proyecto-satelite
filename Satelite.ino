@@ -36,11 +36,9 @@ void loop() {
        contadorError = 0;
 
        // LED éxito parpadea (igual que antes)
-      while (contadorError==0){
       digitalWrite(ledExito, HIGH);
       delay(500);
       digitalWrite(ledExito, LOW);
-      }
           
        // Enviar datos clasificados
        mySerial.println("1:" + String(t)); // Temperatura
@@ -52,11 +50,9 @@ void loop() {
        digitalWrite(ledExito, LOW);
 
        // LED error parpadea (igual que antes)
-       while (contadorError!=0){
           digitalWrite(ledError, HIGH);
           delay(500);
           digitalWrite(ledError, LOW);
-          }
 
        // CAMBIO: enviar mensaje de error clasificado
        mySerial.println("4:"); // Error de captura
