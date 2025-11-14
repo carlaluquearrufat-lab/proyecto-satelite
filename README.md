@@ -100,6 +100,6 @@ Somos el Grupo 14, formado por Arnau Prat Villarroya, Claudia Ros Núñez y Carl
                 plt.draw()
                 plt.pause(0.5)
 
-# Video introductorio de la versión 1:
-🎥 [Ver video en YouTube](https://www.youtube.com/watch?v=pAPxgO0p6xA)
+# Video introductorio de la versión 2:
+
 
