@@ -32,13 +32,14 @@ void loop() {
             delay(500);
         }
     }
-}
     else {
         tone(pinAlarma,3000);
         delay(500);
         noTone(pinAlarma);
         delay(500);
+    }
 }
+    
 
 // FUERA DEL LOOP
 void procesarMensajeSatelite(String mensaje) {
