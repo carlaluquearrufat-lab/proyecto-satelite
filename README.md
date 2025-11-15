@@ -105,5 +105,6 @@ Somos el Grupo 14, formado por Arnau Prat Villarroya, Claudia Ros Núñez y Carl
 # Objetivos a cumplir para la versión 3: 
 - El usuario puede elegir dónde deben calcularse las medias de las 10 últimas temperaturas (si en el satélite o en tierra).
 - El usuario puede cambiar el periodo de envío de datos de temperatura/humedad y de distancia.
+- El usuario puede parar/reanudar el envío de los datos de humedad/temperatura y el envio de datos de distancia
 - El usuario puede establecer el valor máximo de temperatura que hará que salte una alarma si se reciben tres valores medios seguidos por encima de ese valor máximo.
 
