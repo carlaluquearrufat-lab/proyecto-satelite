@@ -101,6 +101,7 @@ Somos el Grupo 14, formado por Arnau Prat Villarroya, Claudia Ros Núñez y Carl
                 plt.pause(0.5)
 
 # Video introductorio de la versión 2:
+https://www.youtube.com/watch?v=ad9l3uBzaGk 
 
 # Objetivos a cumplir para la versión 3: 
 - El usuario puede elegir dónde deben calcularse las medias de las 10 últimas temperaturas (si en el satélite o en tierra).
