@@ -118,9 +118,9 @@ Finalmente, se ha añadido control total sobre el periodo de envío de datos y l
 
 **Código relevante versión 2:**  
 
-data_lock = threading.Lock()
+    data_lock = threading.Lock()
 
-def lector_serial():
+    def lector_serial():
     global ser
     if ser is None:
         return
@@ -172,7 +172,7 @@ def lector_serial():
         time.sleep(0.01)
 
 
-def RADARClick():
+    def RADARClick():
     global radar, sonar, fig2, ax2, radarEncendido 
     if radar is not None and radarEncendido :
         return  #ya abierto 
@@ -190,7 +190,7 @@ def RADARClick():
     threading.Thread(target=actualizar_radar, daemon=True).start()
 
 
-def actualizar_radar():
+    def actualizar_radar():
     global radarEncendido , ax2, sonar, radar
     while radarEncendido :
         
