@@ -110,6 +110,11 @@ https://youtu.be/pAPxgO0p6xA?si=Zm1WQsLXPUr7lVKI
 # Versión 2:
 
 **Descripción versión 2:**  
+En la versión 2 del proyecto se ha incorporado un nuevo sensor de distancia montado sobre un motor, lo que permite su orientación controlada y dinámica. Para ello, se diseñó una estructura unificada que sostiene el sensor y el motor, garantizando que el motor pueda girar el sensor de manera precisa.
+El sensor puede manejarse desde la interfaz gráfica en Python, de forma manual, mediante un control tipo joystick, o de forma automática, ofreciendo flexibilidad en su operación. Asimismo, se implementaron alarmas y notificaciones, que advierten al usuario en caso de fallos de los sensores o del sistema, mejorando la seguridad y confiabilidad.
+Esta versión mantiene e integra todas las funcionalidades de la versión anterior, permitiendo que la interfaz gráfica en Python muestre gráficas dinámicas de temperatura, humedad, distancia y ángulo del motor, con la posibilidad de pausar o reanudar la visualización de manera interactiva. Adicionalmente, se ha implementado la opción de calcular la media de las últimas 10 temperaturas, ya sea en el satélite o en la estación de tierra, siguiendo los objetivos de mejora en análisis de datos.
+El Arduino de tierra recibe la información del controlador y la transmite a Python, asegurando que los datos se presenten de forma fiable y en tiempo real. El código mantiene una estructura clara y comentada, con protocolos definidos y funciones documentadas, facilitando su comprensión y mantenimiento.
+Finalmente, se ha añadido control total sobre el periodo de envío de datos y la posibilidad de detener o reanudar la captura de variables individuales (temperatura, humedad, distancia), cumpliendo con los objetivos de control y supervisión planteados para esta versión.
 
 **Código relevante versión 2:**  
 
