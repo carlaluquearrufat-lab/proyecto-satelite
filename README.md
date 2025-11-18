@@ -112,6 +112,107 @@ https://youtu.be/pAPxgO0p6xA?si=Zm1WQsLXPUr7lVKI
 **Descripción versión 2:**  
 
 **Código relevante versión 2:**  
+data_lock = threading.Lock()
+
+def lector_serial():
+    global ser
+    if ser is None:
+        return
+    while True:
+        try:
+            if ser.in_waiting > 0:
+                linea_raw = ser.readline()
+                if not linea_raw:
+                    continue
+                try:
+                    linea = linea_raw.decode('utf-8', errors='ignore').strip()
+                except:
+                    linea = linea_raw.decode('latin1', errors='ignore').strip()
+                
+                try:
+                    if 'H:' in linea:
+                        part = linea.split('H:')[-1]
+                        val = part.split()[0]
+                        hum = float(val)
+                        with data_lock:
+                            humedades.append(hum)
+                    if 'T:' in linea:
+                        part = linea.split('T:')[-1]
+                        val = part.split()[0]
+                        temp = float(val)
+                        with data_lock:
+                            temperaturas.append(temp)
+                            eje_x.append(len(temperaturas)-1)
+                    if 'Angulo:' in linea:
+                        part = linea.split('Angulo:')[-1]
+                        val = part.split()[0]
+                        ang = float(val)
+                        with data_lock:
+                            angulos.append(ang)
+                    if 'Dist' in linea and 'cm' in linea:
+                        try:
+                            part = linea.split('Dist (cm):')[-1]
+                        except:
+                            part = linea.split('Dist:')[-1]
+                        val = part.split()[0]
+                        dist = float(val)
+                        with data_lock:
+                            distancias.append(dist)
+                except Exception:
+                    pass
+        except Exception:
+            print("Error en lector_serial:")
+            time.sleep(0.2)
+        time.sleep(0.01)
+
+def RADARClick():
+    global radar, sonar, fig2, ax2, radarEncendido 
+    if radar is not None and radarEncendido :
+        return  #ya abierto 
+    
+    radar = True  #radar ya inicializado
+    fig2 = Figure(figsize=(6,4), dpi=100)
+    ax2 = fig2.add_subplot(111, polar=True)
+    ax2.set_theta_zero_location("E")  # 0° a la derecha
+    ax2.set_theta_direction(-1)       # grados hacia arriba
+    ax2.set_title("Radar de Ultrasonido")
+  
+    sonar = FigureCanvasTkAgg(fig2, master=radar_frame)
+    sonar.get_tk_widget().pack(fill='both', expand=True)
+    radarEncendido  = True
+    threading.Thread(target=actualizar_radar, daemon=True).start()
+
+def actualizar_radar():
+    global radarEncendido , ax2, sonar, radar
+    while radarEncendido :
+        
+        try:
+            if not window.winfo_exists():
+                radarEncendido  = False
+                break
+        except:
+            radarEncendido  = False
+            break
+        with data_lock:
+            angs = list(angulos)
+            dists = list(distancias)
+        ax2.clear()
+        ax2.set_theta_zero_location("E")
+        ax2.set_theta_direction(-1)
+        ax2.set_ylim(0, max(dists) * 1.1 if dists else 50)
+        # Convertir grados a radianes
+        if angs and dists and len(angs) == len(dists):
+            thetas = [math.radians(a) for a in angs]
+            ax2.plot(thetas, dists, marker='o', linestyle='-', linewidth=2)
+            # marcar último punto
+            ax2.plot([thetas[-1]], [dists[-1]], marker='o', markersize=8)
+        elif angs and dists:
+          
+            mn = min(len(angs), len(dists))
+            thetas = [math.radians(a) for a in angs[:mn]]
+            ax2.plot(thetas, dists[:mn], marker='o', linestyle='-', linewidth=2)
+        sonar.draw_idle()
+        time.sleep(0.2)
 
 **Video introductorio de la versión 2:**
 https://www.youtube.com/watch?v=ad9l3uBzaGk 
