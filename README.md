@@ -1,8 +1,9 @@
 # GRUPO 14
 ![IMG_2547](https://github.com/user-attachments/assets/18c81932-ab38-4fac-8f1e-7fbd5b14daf9)
 Somos el Grupo 14, formado por Arnau Prat Villarroya, Claudia Ros Núñez y Carla Luque Arrufat. 
-# Código relevante versión 1: 
-           
+
+**Versión 1:**
+# Código relevante versión 1:            
     plt.ion()
     plt.axis([0, 100, 20, 100])
     temperaturas = []
