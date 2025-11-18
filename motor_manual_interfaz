@@ -1,0 +1,47 @@
+import serial
+import time
+import tkinter as tk
+
+
+arduino = serial.Serial('COM3', 9600)  # Cambiar COM según tu PC
+time.sleep(2)
+
+
+def enviar_direccion(valor):
+    comando = f"DIR:{valor}\n"
+    arduino.write(comando.encode())
+    print("Enviado:", comando)
+
+def on_slider(val):
+    val = float(val)
+
+    # Determinar la dirección según el valor del slider
+    if val < -0.5:
+        enviar_direccion(0)   # izquierda
+    elif val > 0.5:
+        enviar_direccion(1)   # derecha
+    else:
+        enviar_direccion(0)  # neutro, motor parado o centrado
+
+# --------------------------
+# INTERFAZ GRÁFICA
+# --------------------------
+ventana = tk.Tk()
+ventana.title("Control de Motor - Slider Izquierda/Derecha")
+
+label = tk.Label(ventana, text="Mover motor", font=("Arial", 14))
+label.pack(pady=10)
+
+slider = tk.Scale(
+    ventana,
+    from_=-1,
+    to=1,
+    orient="horizontal",
+    length=300,
+    resolution=0.1,
+    command=on_slider
+)
+slider.set(0)  # Posición inicial (centro)
+slider.pack(pady=20)
+
+ventana.mainloop()
