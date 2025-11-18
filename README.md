@@ -110,6 +110,7 @@ https://youtu.be/pAPxgO0p6xA?si=Zm1WQsLXPUr7lVKI
 # Versión 2:
 
 **Descripción versión 2:**  
+
 En la versión 2 del proyecto se ha incorporado un nuevo sensor de distancia montado sobre un motor, lo que permite su orientación controlada y dinámica. Para ello, se diseñó una estructura unificada que sostiene el sensor y el motor, garantizando que el motor pueda girar el sensor de manera precisa.
 
 El sensor puede manejarse desde la interfaz gráfica en Python, de forma manual, mediante un control tipo joystick, o de forma automática, ofreciendo flexibilidad en su operación. Asimismo, se implementaron alarmas y notificaciones, que advierten al usuario en caso de fallos de los sensores o del sistema, mejorando la seguridad y confiabilidad.
