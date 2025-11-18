@@ -4,8 +4,11 @@ Somos el Grupo 14, formado por Arnau Prat Villarroya, Claudia Ros Núñez y Carl
 
 # Versión 1:
 **Descripción versión 1:**  
+
 La versión 1 del proyecto representa la fase inicial del sistema, centrada en la adquisición y monitorización de variables ambientales mediante el Arduino satélite (controlador) y la estación de tierra.
+
 En esta versión, el controlador capta correctamente los datos de temperatura y humedad y los transmite a la estación de tierra, donde se visualizan en una gráfica dinámica. El usuario puede pausar o reanudar la gráfica dinámica, ofreciendo control directo sobre la monitorización.
+
 El sistema incluye mecanismos de detención y aviso ante fallos, de modo que el controlador notifica a la estación de tierra si no puede capturar correctamente los datos (por ejemplo, si los sensores están desconectados), y la estación detecta cualquier fallo de comunicación, alertando al usuario de manera clara. La interfaz gráfica está diseñada para que el usuario no tenga dudas sobre su funcionamiento ni sobre la interpretación de los datos y las alarmas.
 
 **Código relevante versión 1:**  
