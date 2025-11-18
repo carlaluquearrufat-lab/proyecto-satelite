@@ -112,6 +112,7 @@ https://youtu.be/pAPxgO0p6xA?si=Zm1WQsLXPUr7lVKI
 **Descripción versión 2:**  
 
 **Código relevante versión 2:**  
+
 data_lock = threading.Lock()
 
 def lector_serial():
@@ -165,6 +166,7 @@ def lector_serial():
             time.sleep(0.2)
         time.sleep(0.01)
 
+
 def RADARClick():
     global radar, sonar, fig2, ax2, radarEncendido 
     if radar is not None and radarEncendido :
@@ -181,6 +183,7 @@ def RADARClick():
     sonar.get_tk_widget().pack(fill='both', expand=True)
     radarEncendido  = True
     threading.Thread(target=actualizar_radar, daemon=True).start()
+
 
 def actualizar_radar():
     global radarEncendido , ax2, sonar, radar
@@ -213,6 +216,7 @@ def actualizar_radar():
             ax2.plot(thetas, dists[:mn], marker='o', linestyle='-', linewidth=2)
         sonar.draw_idle()
         time.sleep(0.2)
+
 
 **Video introductorio de la versión 2:**
 https://www.youtube.com/watch?v=ad9l3uBzaGk 
