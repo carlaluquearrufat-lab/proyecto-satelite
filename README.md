@@ -108,5 +108,3 @@ https://www.youtube.com/watch?v=ad9l3uBzaGk
 - El usuario puede cambiar el periodo de envío de datos de temperatura/humedad y de distancia.
 - El usuario puede parar/reanudar el envío de los datos de humedad/temperatura y el envio de datos de distancia
 - El usuario puede establecer el valor máximo de temperatura que hará que salte una alarma si se reciben tres valores medios seguidos por encima de ese valor máximo.
-- El usuario puede establecer una orientación determinada para el sensor.
-
