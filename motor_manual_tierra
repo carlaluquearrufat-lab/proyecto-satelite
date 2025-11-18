@@ -1,0 +1,11 @@
+void setup() {
+  Serial.begin(9600);       // Comunicación con Python
+  Serial1.begin(9600);      // Cable hacia Arduino Satélite (ej. RX1/TX1)
+}
+
+void loop() {
+  if (Serial.available()) {
+    char c = Serial.read();
+    Serial1.write(c);      // Reenvía tal cual
+  }
+}
