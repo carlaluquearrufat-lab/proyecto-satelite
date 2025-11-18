@@ -1,8 +1,12 @@
+#include <Servo.h>
+
 String mensaje = "";
+Servo servoMotor;
 
 void setup() {
   Serial1.begin(9600);
-  pinMode(5, OUTPUT);      // Ejemplo: pin del motor
+
+  servoMotor.attach(5);  // Pin de señal del servo (puede ser 5 o cualquier PWM)
 }
 
 void loop() {
@@ -20,14 +24,11 @@ void loop() {
 
 void procesarComando(String cmd) {
   if (cmd.startsWith("DIR:")) {
-    int direccion = cmd.substring(4).toInt();
+    int angulo = cmd.substring(4).toInt();
 
-    if (direccion == 1) {
-      // sentido horario
-      digitalWrite(5, HIGH);
-    } else {
-      // sentido antihorario
-      digitalWrite(5, LOW);
-    }
+    // Limitar por seguridad
+    angulo = constrain(angulo, 0, 180);
+
+    servoMotor.write(angulo);
   }
 }
