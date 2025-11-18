@@ -1,0 +1,33 @@
+String mensaje = "";
+
+void setup() {
+  Serial1.begin(9600);
+  pinMode(5, OUTPUT);      // Ejemplo: pin del motor
+}
+
+void loop() {
+
+  while (Serial1.available()) {
+    char c = Serial1.read();
+    if (c == '\n') {
+      procesarComando(mensaje);
+      mensaje = "";
+    } else {
+      mensaje += c;
+    }
+  }
+}
+
+void procesarComando(String cmd) {
+  if (cmd.startsWith("DIR:")) {
+    int direccion = cmd.substring(4).toInt();
+
+    if (direccion == 1) {
+      // sentido horario
+      digitalWrite(5, HIGH);
+    } else {
+      // sentido antihorario
+      digitalWrite(5, LOW);
+    }
+  }
+}
