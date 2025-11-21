@@ -1,34 +1,51 @@
 #include <Servo.h>
+#include <SoftwareSerial.h>
+
+// Comunicación con Arduino tierra
+SoftwareSerial mySerial(10, 11);  // RX, TX
 
 String mensaje = "";
 Servo servoMotor;
 
 void setup() {
-  Serial1.begin(9600);
+  mySerial.begin(9600);
+  servoMotor.attach(13);  // Pin del servo
 
-  servoMotor.attach(5);  // Pin de señal del servo (puede ser 5 o cualquier PWM)
+  servoMotor.write(90);  // Posición neutra inicial
 }
 
 void loop() {
 
-  while (Serial1.available()) {
-    char c = Serial1.read();
+  while (mySerial.available()) {
+    char c = mySerial.read();
+
     if (c == '\n') {
       procesarComando(mensaje);
       mensaje = "";
-    } else {
+    } 
+    else {
       mensaje += c;
     }
   }
 }
 
 void procesarComando(String cmd) {
+
   if (cmd.startsWith("DIR:")) {
-    int angulo = cmd.substring(4).toInt();
 
-    // Limitar por seguridad
-    angulo = constrain(angulo, 0, 180);
+    int dir = cmd.substring(4).toInt();
 
-    servoMotor.write(angulo);
+    if (dir == 0) {
+      // Izquierda
+      servoMotor.write(0);
+    } 
+    else if (dir == 1) {
+      // Derecha
+      servoMotor.write(180);
+    } 
+    else if (dir == 2) {
+      // Neutro
+      servoMotor.write(90);
+    }
   }
 }
