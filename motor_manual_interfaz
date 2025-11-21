@@ -3,7 +3,7 @@ import time
 import tkinter as tk
 
 
-arduino = serial.Serial('COM3', 9600)  # Cambiar COM según tu PC
+arduino = serial.Serial('COM7', 9600)  # Cambiar COM según tu PC
 time.sleep(2)
 
 
@@ -14,15 +14,16 @@ def enviar_direccion(valor):
 
 def on_slider(val):
     val = float(val)
+    print("Valor real del slider:", val)
 
-    # Determinar la dirección según el valor del slider
     if val < -0.5:
-        enviar_direccion(0)   # izquierda
+        estado = 0
     elif val > 0.5:
-        enviar_direccion(1)   # derecha
+        estado = 1
     else:
-        enviar_direccion(0)  # neutro, motor parado o centrado
+        estado = 2
 
+    enviar_direccion(estado)
 # --------------------------
 # INTERFAZ GRÁFICA
 # --------------------------
