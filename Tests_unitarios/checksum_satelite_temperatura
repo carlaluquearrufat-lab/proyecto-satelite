@@ -1,0 +1,61 @@
+#include <DHT.h>
+#define DHTPIN 2
+#define DHTTYPE DHT11
+DHT dht(DHTPIN, DHTTYPE);
+
+// ----------------- Funciones de checksum -----------------
+void floatABytes(float valor, byte* mensaje, int indice) {
+  union {
+    float f;
+    byte b[4];
+  } data;
+  data.f = valor;
+  for (int i = 0; i < 4; i++) {
+    mensaje[indice + i] = data.b[i];
+  }
+}
+
+byte calcularChecksum(byte* mensaje, int largo) {
+  int suma = 0;
+  for (int i = 0; i < largo; i++) {
+    suma += mensaje[i];
+  }
+  return suma % 256;
+}
+
+void enviarMensajeConChecksum(byte* mensaje, int largo) {
+  byte checksum = calcularChecksum(mensaje, largo);
+  for (int i = 0; i < largo; i++) {
+    Serial.write(mensaje[i]);
+  }
+  Serial.write(checksum);
+}
+
+// ----------------- Setup -----------------
+void setup() {
+  Serial.begin(9600);
+  dht.begin();
+}
+
+// ----------------- Loop -----------------
+void loop() {
+  delay(2000);
+  float h = dht.readHumidity();
+  float t = dht.readTemperature();
+
+  if (isnan(h) || isnan(t)) {
+    Serial.println("Error al leer el sensor DHT11");
+  } else {
+    // Preparar mensaje con floats
+    byte mensaje[8]; // 2 floats * 4 bytes
+    floatABytes(h, mensaje, 0);
+    floatABytes(t, mensaje, 4);
+
+    // Enviar mensaje con checksum
+    enviarMensajeConChecksum(mensaje, 8);
+
+    // Para depuración opcional
+    Serial.print("Enviado H: "); Serial.print(h);
+    Serial.print(" T: "); Serial.println(t);
+  }
+}
