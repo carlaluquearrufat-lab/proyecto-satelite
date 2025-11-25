@@ -107,7 +107,7 @@ def TEMPClick():
     init_grafica_if_needed()
     threading.Thread(target=iniciar_grafica, daemon=True).start()
     mensaje = "IniciarT"
-    mySerial.write(mensaje.encode('utf-8'))
+    ser.write((mensaje + "\n").encode('utf-8'))
 
 def HUMClick():
     global grafica2
@@ -115,30 +115,30 @@ def HUMClick():
     init_grafica_if_needed()
     threading.Thread(target=iniciar_grafica2, daemon=True).start()
     mensaje = "IniciarH"
-    mySerial.write(mensaje.encode('utf-8'))
+    ser.write((mensaje + "\n").encode('utf-8'))
 
 def STOPTClick():
     global grafica
     mensaje = "PararT"
-    mySerial.write(mensaje.encode('utf-8'))
+    ser.write((mensaje + "\n").encode('utf-8'))
     grafica= False
 
 def STOPHClick():
     global grafica2
     mensaje = "PararH"
-    mySerial.write(mensaje.encode('utf-8'))
+     ser.write((mensaje + "\n").encode('utf-8'))
     grafica2= False
 
 def STOPDClick():
     global grafica3
     mensaje = "PararD"
-    mySerial.write(mensaje.encode('utf-8'))
+     ser.write((mensaje + "\n").encode('utf-8'))
     grafica3= False
 
 def STOPClick():
     global grafica, grafica2, grafica3
     mensaje = "STOP"
-    mySerial.write(mensaje.encode('utf-8'))
+    ser.write((mensaje + "\n").encode('utf-8'))
     grafica = False
     grafica2 = False
     grafica3 = False
@@ -146,7 +146,7 @@ def STOPClick():
 def REANUDARClick():
     global grafica, grafica2, grafica3
     mensaje = "REANUDAR"
-    mySerial.write(mensaje.encode('utf-8'))
+    ser.write((mensaje + "\n").encode('utf-8'))
     grafica = True
     grafica2 = True
     grafica3 = True
@@ -203,13 +203,13 @@ def RADARClick():
     radarEncendido  = True
     threading.Thread(target=actualizar_radar, daemon=True).start()
     mensaje = "IniciarD"
-    mySerial.write(mensaje.encode('utf-8'))
+    ser.write((mensaje + "\n").encode('utf-8'))
 
 def RADARMClick():
     iniciar_radarmanual()
     RADARClick()
     mensaje= "RadarManual"
-    mySerial.write(mensaje.encode('utf-8'))
+    ser.write((mensaje + "\n").encode('utf-8'))
    
 
 def iniciar_radarmanual():
@@ -221,11 +221,11 @@ def iniciar_radarmanual():
 
     slider = Scale(
         window,
-        from_=-1,
-        to=1,
+        from_=-90,
+        to=90,
         orient="horizontal",
         length=300,
-        resolution=0.1,
+        resolution=1,
         command=on_slider
     )
     slider.set(0)  # Posición inicial (centro)
@@ -268,16 +268,15 @@ def actualizar_radar():
 
 def enviar_direccion(valor):
     comando = f"DIR:{valor}\n"
-    arduino.write(comando.encode())
+    ser.write(comando.encode())
     print("Enviado:", comando)
 
 def on_slider(val):
     val = float(val)
-    print("Valor real del slider:", val)
 
-    if val < -0.5:
+    if val < -45:
         estado = 0
-    elif val > 0.5:
+    elif val > 45:
         estado = 1
     else:
         estado = 2
