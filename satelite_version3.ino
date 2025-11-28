@@ -77,7 +77,7 @@ void setup() {
 void loop() {
   unsigned long ahora = millis();
 
-  // Debug
+  // Numero de envio
   mySerial.println(i++);
   
   // Lectura comandos
@@ -92,9 +92,7 @@ void loop() {
     }
   }
 
-  // ---------------------
   // TEMPERATURA
-  // ---------------------
   if (leertemperatura) {
     if (ahora - temp_anterior >= intervalo_temp) {
       temp_anterior = ahora;
@@ -107,15 +105,15 @@ void loop() {
       }
     }
 
-    if (ISNANT) parpadeoLed(ledErrorT, led_anterior_T, ahora);
-  } 
+    if (ISNANT) {
+      parpadeoLed(ledErrorT, led_anterior_T, ahora);
+      mySerial.println("Error al leer temperatura");
+    } 
   else {
     TEMPERATURA = "Lectura detenida";
   }
 
-  // ---------------------
   // HUMEDAD
-  // ---------------------
   if (leerhumedad) {
     if (ahora - hum_anterior >= intervalo_hum) {
       hum_anterior = ahora;
@@ -128,15 +126,15 @@ void loop() {
       }
     }
 
-    if (ISNANH) parpadeoLed(ledErrorH, led_anterior_H, ahora);
+    if (ISNANH) {
+      parpadeoLed(ledErrorH, led_anterior_H, ahora);
+      mySerial.println("Error al leer humedad");
   }
   else {
     HUMEDAD = "Lectura detenida";
   }
 
-  // ---------------------
   // RADAR 
-  // ---------------------
   if (leerdistancia) {
     if (ahora - servo_anterior >= intervalo_servo) {
       servo_anterior = ahora;
@@ -160,9 +158,7 @@ void loop() {
     }
   }
 
-  // ---------------------
   // RADAR MANUAL
-  // ---------------------
   if (leerdistanciamanual) {
     if (mySerial.available()) {
       char c = mySerial.read();
@@ -174,10 +170,8 @@ void loop() {
       }
     }
   }
-
-  // ---------------------
+    
   // ENVÍO DE DATOS
-  // ---------------------
   mySerial.print(" T: "); mySerial.print(TEMPERATURA);
   mySerial.print(" H: "); mySerial.print(HUMEDAD);
   mySerial.print(" Dist (cm): ");
@@ -189,10 +183,7 @@ void loop() {
   }
 }
 
-/////////////////////////////////////////////////
 // FUNCIONES
-/////////////////////////////////////////////////
-
 void instrucciones(String linea) {
 
   if (linea.indexOf("STOP") >= 0) {
@@ -203,14 +194,24 @@ void instrucciones(String linea) {
     leertemperatura = leerhumedad = leerdistancia = true;
   }
 
-  if (linea.indexOf("PararT") >= 0) leertemperatura = false;
-  if (linea.indexOf("PararH") >= 0) leerhumedad   = false;
-  if (linea.indexOf("PararD") >= 0) leerdistancia = false;
-
-  if (linea.indexOf("IniciarT") >= 0) leertemperatura = true;
-  if (linea.indexOf("IniciarH") >= 0) leerhumedad     = true;
-  if (linea.indexOf("IniciarD") >= 0) leerdistancia   = true;
-
+  if (linea.indexOf("PararT") >= 0) {
+    leertemperatura = false;
+  }
+  if (linea.indexOf("PararH") >= 0){
+    leerhumedad   = false;
+  }
+  if (linea.indexOf("PararD") >= 0) {
+    leerdistancia = false;
+  }
+  if (linea.indexOf("IniciarT") >= 0){
+    leertemperatura = true;
+  }
+  if (linea.indexOf("IniciarH") >= 0){
+    leerhumedad     = true;
+  }
+  if (linea.indexOf("IniciarD") >= 0){
+    leerdistancia   = true;
+  }
   if (linea.indexOf("RadarManual") >= 0) {
     leerdistanciamanual = true;
     leerdistancia = false;
