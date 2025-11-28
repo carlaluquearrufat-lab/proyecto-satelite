@@ -19,8 +19,8 @@ unsigned long dis_anterior   = 0;
 unsigned long servo_anterior = 0;
 unsigned long temp_anterior  = 0;
 unsigned long hum_anterior   = 0;
-unsigned long led_anterior_T = 0;
-unsigned long led_anterior_H = 0;
+unsigned long led_anterior_Exito = 0;
+unsigned long led_anterior_Error = 0;
 
 const int incremento = 10;
 int direccion = 1;
@@ -38,14 +38,15 @@ Servo servo;
 #define DHTTYPE DHT11
 DHT dht(DHTPIN, DHTTYPE);
 
-const int ledErrorT = 4;
-const int ledErrorH = 6;
+const int ledExito = 4;
+const int ledError = 6;
 
 int i = 0;
+int contador = 0;
 
-bool leertemperatura   = true;
-bool leerhumedad       = true;
-bool leerdistancia     = true;
+bool leertemperatura = true;
+bool leerhumedad = true;
+bool leerdistancia = true;
 bool leerdistanciamanual = false;
 
 bool ISNANT = false; 
@@ -100,13 +101,13 @@ void loop() {
       
       if (TEMPERATURA == "Error") {
         ISNANT = true;
+        contador ++;
       } else {
         ISNANT = false;
       }
     }
 
     if (ISNANT) {
-      parpadeoLed(ledErrorT, led_anterior_T, ahora);
       mySerial.println("Error al leer temperatura");
     } 
   else {
@@ -121,19 +122,28 @@ void loop() {
       
       if (HUMEDAD == "Error") {
         ISNANH = true;
+        contador ++;
       } else {
         ISNANH = false;
       }
     }
-
     if (ISNANH) {
-      parpadeoLed(ledErrorH, led_anterior_H, ahora);
       mySerial.println("Error al leer humedad");
-  }
-  else {
-    HUMEDAD = "Lectura detenida";
+    }
+    else {
+      HUMEDAD = "Lectura detenida";
+    }
   }
 
+  //FALLO EN TEMPERATURA Y HUMEDAD
+  if (ISNANT && ISNANH){
+    parpadeoLed(ledError, led_anterior_Error, ahora);
+  }
+  //si hay mas de 5 errores en la lectrua de temperatura o humedad
+  if (contador >= 5){
+    mySerial.println("Fallo TH");
+  } 
+    
   // RADAR 
   if (leerdistancia) {
     if (ahora - servo_anterior >= intervalo_servo) {
@@ -172,6 +182,7 @@ void loop() {
   }
     
   // ENVÍO DE DATOS
+  parpadeoLed(ledExito, led_anterior_Exito, ahora);
   mySerial.print(" T: "); mySerial.print(TEMPERATURA);
   mySerial.print(" H: "); mySerial.print(HUMEDAD);
   mySerial.print(" Dist (cm): ");
