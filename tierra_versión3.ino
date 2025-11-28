@@ -4,54 +4,90 @@ SoftwareSerial mySerial(10, 11); // RX, TX
 const int pinAlarma = 8;
 const int pinLed = 5;
 
+// Estados para parpadeo sin bloquear
+unsigned long marcaAlarma = 0;
+unsigned long marcaLed = 0;
+bool alarmaActiva = false;
+bool ledActivo = false;
+
+String linea = "";
+
 void setup() {
   Serial.begin(9600);
   Serial.println("Empezamos la recepción");
   mySerial.begin(9600);
+
   pinMode(pinLed, OUTPUT);
   pinMode(pinAlarma, OUTPUT);
 }
 
-String linea = "";
-
 void loop() {
 
-  while (mySerial.available()>0) {
+  // ----------------------------
+  // LECTURA DESDE EL SATÉLITE
+  // ----------------------------
+  while (mySerial.available() > 0) {
     char texto = mySerial.read();
 
-    // cuando llega una línea completa
-    if (texto == '\n') {
+    if (texto == '\n' || texto == '\r') {
       linea.trim();
       if (linea.length() > 0) {
         Serial.println(linea);
 
         if (linea.indexOf("No Echo") >= 0) {
-          tone(pinAlarma, 1000);
-          delay(300);
-          noTone(pinAlarma);
+          activarAlarma();
         } else {
-          digitalWrite(pinLed, HIGH);
-          delay(150);
-          digitalWrite(pinLed, LOW);
+          activarLed();
         }
       }
-      linea = ""; // limpiar para la siguiente línea
+      linea = "";
     } 
     else {
-      linea += texto; // acumular caracteres
+      linea += texto;
     }
-
-    //enviar a satelite instrucciones recibidas de la interfaz (parar,reanudar...)
-    if (Serial.available()){
-      char instrucciones= Serial.read();
-      mySerial.println(instrucciones);
-    }
-    
   }
-  //enviar a satelite instrucciones recibidas de la interfaz (parar,reanudar...) aunque no haya recibido ninguna información del satelite
-  if (Serial.available()){
-    char instrucciones= Serial.read();
+
+  // ----------------------------
+  // ENVÍO DE INSTRUCCIONES A SATÉLITE
+  // ----------------------------
+  if (Serial.available()) {
+    char instrucciones = Serial.read();
     mySerial.println(instrucciones);
+  }
+
+  // ----------------------------
+  // EFECTOS NO BLOQUEANTES
+  // ----------------------------
+  actualizarAlarma();
+  actualizarLed();
+}
+
+//////////////////////////////////////////////////////
+// EFECTOS NO BLOQUEANTES
+//////////////////////////////////////////////////////
+
+void activarAlarma() {
+  tone(pinAlarma, 1000);
+  alarmaActiva = true;
+  marcaAlarma = millis();
+}
+
+void actualizarAlarma() {
+  if (alarmaActiva && millis() - marcaAlarma >= 300) {
+    noTone(pinAlarma);
+    alarmaActiva = false;
   }
 }
 
+void activarLed() {
+  digitalWrite(pinLed, HIGH);
+  ledActivo = true;
+  marcaLed = millis();
+}
+
+void actualizarLed() {
+  if (ledActivo && millis() - marcaLed >= 150) {
+    digitalWrite(pinLed, LOW);
+    ledActivo = false;
+  }
+}
