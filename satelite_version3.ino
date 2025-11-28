@@ -43,6 +43,7 @@ const int ledError = 6;
 
 int i = 0;
 int contador = 0;
+String mensaje = "";
 
 bool leertemperatura = true;
 bool leerhumedad = true;
@@ -51,9 +52,6 @@ bool leerdistanciamanual = false;
 
 bool ISNANT = false; 
 bool ISNANH = false;
-
-// Buffer lectura serie
-String linea = "";
 
 void setup() {
   servo.attach(13);
@@ -83,10 +81,10 @@ void loop() {
   
   // Lectura comandos
   if (mySerial.available()) {
-    char c = mySerial.read();
-    if (c == '\n') {
+    String linea = mySerial.read();
+    if (linea == '\n') {
       linea.trim();
-      instrucciones(linea);
+      instrucciones(linea, mensaje);
       linea = "";
     } else {
       linea += c;
@@ -168,15 +166,8 @@ void loop() {
 
   // RADAR MANUAL
   if (leerdistanciamanual) {
-    if (mySerial.available()) {
-      char c = mySerial.read();
-      if (c == '\n') {
-        procesarComando(linea);
-        linea = "";
-      } else {
-        linea += c;
-      }
-    }
+      procesarComando(mensaje);
+      mensaje = "";
   }
     
   // ENVÍO DE DATOS
@@ -193,38 +184,38 @@ void loop() {
 }
 
 // FUNCIONES
-void instrucciones(String linea) {
-
+void instrucciones(String linea, String mensaje) {
+  
   if (linea.indexOf("STOP") >= 0) {
     leertemperatura = leerhumedad = leerdistancia = false;
   }
-  
-  if (linea.indexOf("REANUDAR") >= 0) {
+  else if (linea.indexOf("REANUDAR") >= 0) {
     leertemperatura = leerhumedad = leerdistancia = true;
   }
-
-  if (linea.indexOf("PararT") >= 0) {
+  else if (linea.indexOf("PararT") >= 0) {
     leertemperatura = false;
   }
-  if (linea.indexOf("PararH") >= 0){
+  else if (linea.indexOf("PararH") >= 0){
     leerhumedad   = false;
   }
-  if (linea.indexOf("PararD") >= 0) {
+   else if (linea.indexOf("PararD") >= 0) {
     leerdistancia = false;
   }
-  if (linea.indexOf("IniciarT") >= 0){
+  else  if (linea.indexOf("IniciarT") >= 0){
     leertemperatura = true;
   }
-  if (linea.indexOf("IniciarH") >= 0){
+  else if (linea.indexOf("IniciarH") >= 0){
     leerhumedad     = true;
   }
-  if (linea.indexOf("IniciarD") >= 0){
+  else if (linea.indexOf("IniciarD") >= 0){
     leerdistancia   = true;
   }
-  if (linea.indexOf("RadarManual") >= 0) {
+  else if (linea.indexOf("RadarManual") >= 0) {
     leerdistanciamanual = true;
     leerdistancia = false;
   }
+  else {
+    mensaje = linea;
 }
 
 String medirTemperatura() {
