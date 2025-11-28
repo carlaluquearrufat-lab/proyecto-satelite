@@ -32,8 +32,10 @@ void loop() {
         Serial.println(linea);
 
         if (linea.indexOf("No Echo") >= 0) {
-          activarAlarma();
-        } else {
+          activarAlarma(1000);
+        } if else (linea.indexOf("Fallo TH") >= 0){
+          activarAlarma(2000);
+        }  else {
           activarLed();
         }
       }
@@ -58,8 +60,8 @@ void loop() {
 
 // EFECTOS NO BLOQUEANTES
 
-void activarAlarma() {
-  tone(pinAlarma, 1000);
+void activarAlarma(float x) {
+  tone(pinAlarma, x);
   alarmaActiva = true;
   marcaAlarma = millis();
 }
