@@ -16,10 +16,10 @@ String linea = "";
 
 void loop() {
 
-  if(serial.available()){
+   if(serial.available()){
     String data= Serial.readSteingUntil('\n");
     data.trim();
-  if (command.length()>0){
+   if (command.length()>0){
     mySerial.println(command);}}
   
   while (mySerial.available()) {
