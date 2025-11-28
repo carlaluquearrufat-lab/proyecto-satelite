@@ -22,10 +22,7 @@ void setup() {
 }
 
 void loop() {
-
-  // ----------------------------
   // LECTURA DESDE EL SATÉLITE
-  // ----------------------------
   while (mySerial.available() > 0) {
     char texto = mySerial.read();
 
@@ -47,24 +44,19 @@ void loop() {
     }
   }
 
-  // ----------------------------
   // ENVÍO DE INSTRUCCIONES A SATÉLITE
-  // ----------------------------
   if (Serial.available()) {
     char instrucciones = Serial.read();
     mySerial.println(instrucciones);
   }
 
-  // ----------------------------
   // EFECTOS NO BLOQUEANTES
-  // ----------------------------
   actualizarAlarma();
   actualizarLed();
 }
 
-//////////////////////////////////////////////////////
+
 // EFECTOS NO BLOQUEANTES
-//////////////////////////////////////////////////////
 
 void activarAlarma() {
   tone(pinAlarma, 1000);
