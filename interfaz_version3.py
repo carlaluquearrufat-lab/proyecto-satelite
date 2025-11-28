@@ -126,13 +126,13 @@ def STOPTClick():
 def STOPHClick():
     global grafica2
     mensaje = "PararH"
-     ser.write((mensaje + "\n").encode('utf-8'))
+    ser.write((mensaje + "\n").encode('utf-8'))
     grafica2= False
 
 def STOPDClick():
     global grafica3
     mensaje = "PararD"
-     ser.write((mensaje + "\n").encode('utf-8'))
+    ser.write((mensaje + "\n").encode('utf-8'))
     grafica3= False
 
 def STOPClick():
@@ -213,14 +213,14 @@ def RADARMClick():
    
 
 def iniciar_radarmanual():
-    window = Tk()
-    window.title("Control de Motor - Slider Izquierda/Derecha")
+    window2 = Tk()
+    window2.title("Control de Motor - Slider Izquierda/Derecha")
 
-    tituloLabel = Label(window, text="Mover motor", font=("Arial", 14))
+    tituloLabel = Label(window2, text="Mover motor", font=("Arial", 14))
     tituloLabel.grid( pady=20)
 
     slider = Scale(
-        window,
+        window2,
         from_=-90,
         to=90,
         orient="horizontal",
@@ -231,7 +231,7 @@ def iniciar_radarmanual():
     slider.set(0)  # Posición inicial (centro)
     slider.grid( pady=20)
 
-    window.mainloop()
+    window2.mainloop()
 
 
 def actualizar_radar():
