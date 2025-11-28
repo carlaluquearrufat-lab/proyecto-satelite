@@ -37,6 +37,12 @@ void setup() {
 }
 
 void loop() {
+
+   if (mySerial.available()) {
+    String cmd = mySerial.readStringUntil('\n');
+    cmd.trim();
+    Serial.println(cmd);
+     
   mySerial.println(i);
   i=i+1;
   float h = dht.readHumidity();
