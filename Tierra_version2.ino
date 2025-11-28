@@ -15,13 +15,13 @@ void setup() {
 String linea = "";
 
 void loop() {
+if (Serial.available()) { 
+  String data = Serial.readStringUntil('\n'); 
+  data.trim(); 
+  if (data.length() > 0) { 
+    mySerial.println(data); 
+    Serial.println(data); } } }
 
-   if(serial.available()){
-    String data= Serial.readSteingUntil('\n");
-    data.trim();
-   if (command.length()>0){
-    mySerial.println(command);}}
-  
   while (mySerial.available()) {
     char texto = mySerial.read();
 
