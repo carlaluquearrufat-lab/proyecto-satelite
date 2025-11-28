@@ -16,8 +16,17 @@ String linea = "";
 
 void loop() {
 
+if(serial.available()){
+String data= Serial.readSteingUntil('\n");
+data.trim();
+if (command.length()>0){
+mySerial.println(command);
+}
+}
+  
   while (mySerial.available()) {
     char texto = mySerial.read();
+
 
     // cuando llega una línea completa
     if (texto == '\n') {
