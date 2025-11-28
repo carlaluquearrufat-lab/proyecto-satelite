@@ -69,8 +69,8 @@ void setup() {
 
   servo.write(90);
 
-  pinMode(ledErrorT, OUTPUT);
-  pinMode(ledErrorH, OUTPUT);
+  pinMode(ledExito, OUTPUT);
+  pinMode(ledError, OUTPUT);
 
   i = 1;
 }
@@ -105,13 +105,12 @@ void loop() {
       } else {
         ISNANT = false;
       }
-    }
-
-    if (ISNANT) {
-      mySerial.println("Error al leer temperatura");
-    } 
-  else {
+      if (ISNANT) {
+        mySerial.println("Error al leer temperatura");
+      }
+    } else {
     TEMPERATURA = "Lectura detenida";
+    }
   }
 
   // HUMEDAD
@@ -126,11 +125,10 @@ void loop() {
       } else {
         ISNANH = false;
       }
-    }
-    if (ISNANH) {
-      mySerial.println("Error al leer humedad");
-    }
-    else {
+      if (ISNANH) {
+        mySerial.println("Error al leer humedad");
+      }
+    } else {
       HUMEDAD = "Lectura detenida";
     }
   }
