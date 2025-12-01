@@ -4,52 +4,40 @@ SoftwareSerial mySerial(10, 11); // RX, TX
 const int pinAlarma = 8;
 const int pinLed = 5;
 
-// Estados para parpadeo sin bloquear
 unsigned long marcaAlarma = 0;
 unsigned long marcaLed = 0;
 bool alarmaActiva = false;
 bool ledActivo = false;
-
 String linea = "";
 
 void setup() {
   Serial.begin(9600);
-  Serial.println("Empezamos la recepción");
   mySerial.begin(9600);
-
   pinMode(pinLed, OUTPUT);
   pinMode(pinAlarma, OUTPUT);
+  Serial.println("Sistema Tierra listo");
 }
 
 void loop() {
-  // LECTURA DESDE EL SATÉLITE
+  // LECTURA DE DATOS DEL SATÉLITE
   while (mySerial.available() > 0) {
-    char texto = mySerial.read();
-
-    if (texto == '\n' || texto == '\r') {
+    char c = mySerial.read();
+    if (c == '\n' || c == '\r') {
       linea.trim();
       if (linea.length() > 0) {
         Serial.println(linea);
-
-        if (linea.indexOf("No Echo") >= 0) {
-          activarAlarma(1000);
-        } if else (linea.indexOf("Fallo TH") >= 0){
-          activarAlarma(2000);
-        }  else {
-          activarLed();
-        }
+        if (linea.indexOf("No Echo") >= 0) activarAlarma(1000);
+        else if (linea.indexOf("Error al leer") >= 0) activarAlarma(2000);
+        else activarLed();
       }
       linea = "";
-    } 
-    else {
-      linea += texto;
-    }
+    } else linea += c;
   }
 
-  // ENVÍO DE INSTRUCCIONES A SATÉLITE
+  // ENVÍO DE COMANDOS AL SATÉLITE
   if (Serial.available()) {
-    char instrucciones = Serial.read();
-    mySerial.println(instrucciones);
+    String cmd = Serial.readStringUntil('\n');
+    mySerial.println(cmd);
   }
 
   // EFECTOS NO BLOQUEANTES
@@ -57,31 +45,7 @@ void loop() {
   actualizarLed();
 }
 
-
-// EFECTOS NO BLOQUEANTES
-
-void activarAlarma(float x) {
-  tone(pinAlarma, x);
-  alarmaActiva = true;
-  marcaAlarma = millis();
-}
-
-void actualizarAlarma() {
-  if (alarmaActiva && millis() - marcaAlarma >= 300) {
-    noTone(pinAlarma);
-    alarmaActiva = false;
-  }
-}
-
-void activarLed() {
-  digitalWrite(pinLed, HIGH);
-  ledActivo = true;
-  marcaLed = millis();
-}
-
-void actualizarLed() {
-  if (ledActivo && millis() - marcaLed >= 150) {
-    digitalWrite(pinLed, LOW);
-    ledActivo = false;
-  }
-}
+void activarAlarma(float freq) { tone(pinAlarma, freq); alarmaActiva = true; marcaAlarma = millis(); }
+void actualizarAlarma() { if (alarmaActiva && millis() - marcaAlarma >= 300) { noTone(pinAlarma); alarmaActiva = false; } }
+void activarLed() { digitalWrite(pinLed, HIGH); ledActivo = true; marcaLed = millis(); }
+void actualizarLed() { if (ledActivo && millis() - marcaLed >= 150) { digitalWrite(pinLed, LOW); ledActivo = false; } }
