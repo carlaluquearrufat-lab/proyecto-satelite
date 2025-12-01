@@ -8,6 +8,7 @@ const int ECO = 9;
 const int LED = 3;
 const int ledExito = 4;
 const int ledError = 6;
+const int BUZZER = 7;
 
 const int DHTPIN = 2;
 const int DHTTYPE = DHT11;
@@ -59,6 +60,8 @@ void setup() {
   pinMode(LED, OUTPUT);
   pinMode(ledExito, OUTPUT);
   pinMode(ledError, OUTPUT);
+  pinMode(BUZZER, OUTPUT);
+  digitalWrite(BUZZER, LOW);
 
   Serial.begin(9600);
   mySerial.begin(9600);
@@ -127,6 +130,9 @@ void loop() {
   // -------------------
   if (ISNANT && ISNANH) {
     parpadeoLed(ledError, tiempoLedError, ahora);
+    tone(BUZZER, 1000);     // 🔊 ALARMA SUAVE
+  } else {
+    noTone(BUZZER);         // Apaga el buzzer si ya no hay error
   }
 
   // -------------------
