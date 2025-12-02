@@ -242,7 +242,95 @@ Las novedades principales de la versión 3 son: un sistema de detección de erro
 
 **Código relevante de la versión 3:**
 
+    canvas_orbita = None
+    fig_orbita = None
+    ax_orbita = None
+    
+    #Variables para la órbita
+    R_EARTH = 6371000  # Radio de la Tierra en metros
+    x_vals = []
+    y_vals = []
+    z_vals = []
 
+    # Lectura de posición de órbita (Position: X:.. Y:.. Z:..)
+        if 'Position:' in linea:
+            try:
+                parts = linea.replace('Position:','').replace('(','').replace(')','').split(',')
+                x = float(parts[0].split(':')[1])
+                y = float(parts[1].split(':')[1])
+                z = float(parts[2].split(':')[1])
+                x_vals.append(x)
+                y_vals.append(y)
+                z_vals.append(z)
+                except: pass
+                
+    # ---------------- RADAR MANUAL ----------------              
+    def radar_manual():
+        win = Toplevel(window)
+        win.title("Control Motor")
+        Label(win, text="Mover Motor", font=("Arial",14)).pack(pady=10)
+        slider = Scale(win, from_=-90, to=90, orient="horizontal", length=300, resolution=1, command=enviar_direccion)
+        slider.set(0)
+        slider.pack(pady=20)
+
+    def enviar_direccion(val):
+        val = float(val)
+        angulo = int(90 + val)
+        angulo = max(0, min(180, angulo))
+        if ser is not None:
+            ser.write(f"DIR:{angulo}\n".encode())
+            print("Enviado:", angulo)
+
+    # ---------------- ORBITA ----------------
+    def init_orbita():
+        global canvas_orbita, fig_orbita, ax_orbita, orbitaEncendida
+        if orbitaEncendida:
+            return
+        orbitaEncendida = True
+        fig_orbita = Figure(figsize=(6,6), dpi=100)
+        ax_orbita = fig_orbita.add_subplot(111)
+        ax_orbita.set_aspect('equal', 'box')
+        ax_orbita.set_xlim(-7e6, 7e6)
+        ax_orbita.set_ylim(-7e6, 7e6)
+        ax_orbita.set_xlabel('X (m)')
+        ax_orbita.set_ylabel('Y (m)')
+        ax_orbita.set_title('Orbit View')
+        canvas_orbita = FigureCanvasTkAgg(fig_orbita, master=orbit_frame)
+        canvas_orbita.get_tk_widget().pack(fill='both', expand=True)
+        threading.Thread(target=actualizar_orbita, daemon=True).start()
+
+    def actualizar_orbita():
+        global x_vals, y_vals
+        while orbitaEncendida:
+            with data_lock:
+                xs = list(x_vals)
+                ys = list(y_vals)
+            if not xs or not ys:
+                time.sleep(0.1)
+                continue
+            ax_orbita.clear()
+            ax_orbita.set_aspect('equal', 'box')
+            ax_orbita.set_xlim(-7e6,7e6)
+            ax_orbita.set_ylim(-7e6,7e6)
+            ax_orbita.plot(xs, ys, 'bo-', markersize=2, label='Orbit')
+            canvas_orbita.draw_idle()
+            time.sleep(0.25)
+
+    def RADARMClick():
+        radar_manual()
+        init_radar()
+        if ser: ser.write(b"RadarManual\n")
+
+    def ORBITClick():
+        init_orbita()
+
+    Button(window,text="RADAR MANUAL", command=RADARMClick, bg='green',fg='white',**botones).grid(row=2,column=4,sticky=N+S+E+W)
+    Button(window,text="ORBITA", command=ORBITClick, bg='orange',fg='white',**botones).grid(row=2,column=5,sticky=N+S+E+W)
+
+    orbit_frame = Frame(window, bd=2, relief='groove')
+    orbit_frame.grid(row=4,column=5,columnspan=1,sticky=N+S+E+W,padx=5,pady=5)
+
+    
 **Video introductorio de la versión 3:**
 
 
