@@ -338,4 +338,11 @@ Al haber completado los objetivos pendientes de la versión 2, hemos añadido al
 
 
 # Objetivos a cumplir para la versión 4: 
+- El usuario puede elegir dónde deben calcularse las medias de las 10 últimas temperaturas (si en el satélite o en tierra).
+- El usuario puede cambiar el periodo de envío de datos de temperatura/humedad, de distancia y de posición.
+- El usuario puede establecer el valor máximo de temperatura que hará que salte una alarma si se reciben tres valores medios seguidos por encima de ese valor máximo.
+- El usuario puede introducir en el sistema texto con sus observaciones en cualquier momento.
+- El sistema registra en ficheros los 3 tipos de eventos (alarmas, comandos y observaciones).
+- El usuario puede consultar en cualquier momento los eventos registrados, filtrando por dia y por tipo de evento.
+- El sistema de comunicaciones usa el mecanismo de checksum para detectar alteraciones en el mensaje.
 - 
