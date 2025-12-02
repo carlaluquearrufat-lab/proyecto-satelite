@@ -237,9 +237,15 @@ Finalmente, se ha añadido control total sobre el periodo de envío de datos y l
 **Video introductorio de la versión 2:**
 https://www.youtube.com/watch?v=ad9l3uBzaGk 
 
+# Versión 3: 
+Las novedades principales de la versión 3 son: un sistema de detección de errores en la comunicación, el envío por parte del satélite de datos sobre su posición que se mostrarán en una gráfica apropiada, la implementación de un sistema de comunicación inalámbrica entre el satélite y la estación de tierra y la implementación de un sistema de registro de eventos.
 
-# Objetivos a cumplir para la versión 3: 
-- El usuario puede elegir dónde deben calcularse las medias de las 10 últimas temperaturas (si en el satélite o en tierra).
-- El usuario puede cambiar el periodo de envío de datos de temperatura/humedad y de distancia.
-- El usuario puede parar/reanudar el envío de los datos de humedad/temperatura y el envio de datos de distancia
-- El usuario puede establecer el valor máximo de temperatura que hará que salte una alarma si se reciben tres valores medios seguidos por encima de ese valor máximo.
+**Código relevante de la versión 3:**
+
+
+**Video introductorio de la versión 3:**
+
+
+
+# Objetivos a cumplir para la versión 4: 
+- 
