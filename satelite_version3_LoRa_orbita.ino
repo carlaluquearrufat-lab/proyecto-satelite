@@ -28,6 +28,7 @@ const unsigned long INTERVALO_DIST = 80;
 const unsigned long INTERVALO_TEMP = 3000;
 const unsigned long INTERVALO_HUM = 3000;
 const unsigned long INTERVALO_LED = 500;
+const unsigned long INTERVALO_BUZZER = 1000;
 const unsigned long nextUpdate; //Cuando la siguiente simulación debe ocurrir
 
 // ----- VARIABLES -----
@@ -37,6 +38,7 @@ unsigned long tiempoTemp = 0;
 unsigned long tiempoHum = 0;
 unsigned long tiempoLedExito = 0;
 unsigned long tiempoLedError = 0;
+unsigned long tiempoBuzzer = 0;
 double real_orbital_period; //Periodo real acual del satelite
 double r; //Duistancia entre el centro de la Tierra y el satelite
 
@@ -50,6 +52,7 @@ float HUMEDAD = 0;
 
 bool ISNANT = false;
 bool ISNANH = false;
+bool alarma = false;
 
 bool leertemperatura = true;
 bool leerhumedad = true;
@@ -132,6 +135,7 @@ void loop() {
     } else {
       TEMPERATURA = t;
       ISNANT = false;
+      contadorErrores = 0;
     }
   }
 
@@ -150,15 +154,17 @@ void loop() {
     } else {
       HUMEDAD = h;
       ISNANH = false;
+      contadorErrores = 0;
     }
   }
 
   // LED de error si falla temp y humedad
   if (ISNANT && ISNANH) {
     parpadeoLed(ledError, tiempoLedError, ahora);
-    tone(BUZZER, 1000);
-  } else {
-    noTone(BUZZER);
+  } 
+  // Alarma sonora si hay mas de 5 errores de lectura de temperatura o humedad consecutivos
+  if (contadorErrores >= 5){
+    alarmasonora(BUZZER, tiempoBuzzer, ahora);
   }
 
 
@@ -222,6 +228,19 @@ void parpadeoLed(int ledPin, unsigned long &marca, unsigned long ahora) {
   if (ahora - marca >= INTERVALO_LED) {
     marca = ahora;
     digitalWrite(ledPin, !digitalRead(ledPin));
+  }
+}
+
+void alarmasonora(int BuzzerPin, unsigned long &marca, unsigned long ahora) {
+  if (ahora - marca >= INTERVALO_BUZZER) {
+    marca = ahora;
+    alarma = !alarma;
+    if (alarma){
+      tone(BUZZER,1000);
+    }
+    else {
+      noTone(BUZZER); 
+    }
   }
 }
 
