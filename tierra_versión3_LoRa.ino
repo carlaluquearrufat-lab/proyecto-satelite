@@ -1,5 +1,6 @@
-#include <LoRa.h>
+#include <SoftwareSerial.h>
 
+SoftwareSerial LoRaSerial(10, 11); // RX, TX
 const int pinAlarma = 8;
 const int pinLed = 5;
 
@@ -8,77 +9,63 @@ unsigned long marcaLed = 0;
 bool alarmaActiva = false;
 bool ledActivo = false;
 
-String linea = "";
-
 void setup() {
   Serial.begin(9600);
+  LoRaSerial.begin(9600);
   pinMode(pinLed, OUTPUT);
   pinMode(pinAlarma, OUTPUT);
-
-  Serial.println("Sistema Tierra listo (LoRa)");
-
-  // -------- INICIAR LORA --------
-  if (!LoRa.begin(433E6)) {
-    Serial.println("Error iniciando LoRa");
-    while (1);
-  }
-  Serial.println("LoRa iniciado");
+  Serial.println("Sistema Tierra listo para recibir datos por LoRa...");
 }
 
 void loop() {
+  // ----- Recepción de datos por LoRa -----
+  if (LoRaSerial.available()) {
+    String linea = LoRaSerial.readStringUntil('\n');
+    linea.trim(); // eliminar \r y espacios
 
-  // -------------------------
-  // LECTURA DE PAQUETES LORA
-  // -------------------------
-  int packetSize = LoRa.parsePacket();
-  if (packetSize) {
+    if (linea.length() > 0) {
+      // Mostrar línea completa en el monitor
+      Serial.println("Recibido: " + linea);
 
-    while (LoRa.available()) {
-      char c = LoRa.read();
+      // ----- Parseo de datos -----
+      float temp = 0, hum = 0, dist = 0;
+      int ang = 0, num = 0;
 
-      if (c == '\n' || c == '\r') {
-        linea.trim();
+      // Extraer cada valor usando "tag:value"
+      int idx;
+      if ((idx = linea.indexOf("Num:")) >= 0) num = linea.substring(idx + 4, linea.indexOf(" ", idx)).toInt();
+      if ((idx = linea.indexOf("T:")) >= 0) temp = linea.substring(idx + 2, linea.indexOf(" ", idx)).toFloat();
+      if ((idx = linea.indexOf("H:")) >= 0) hum = linea.substring(idx + 2, linea.indexOf(" ", idx)).toFloat();
+      if ((idx = linea.indexOf("Dist:")) >= 0) dist = linea.substring(idx + 5, linea.indexOf(" ", idx + 5) == -1 ? linea.length() : linea.indexOf(" ", idx + 5)).toFloat();
+      if ((idx = linea.indexOf("Ang:")) >= 0) ang = linea.substring(idx + 4).toInt();
 
-        if (linea.length() > 0) {
-          Serial.println(linea);
+      // Mostrar datos parseados
+      Serial.print("Lectura #: "); Serial.println(num);
+      Serial.print("Temperatura: "); Serial.print(temp); Serial.println(" °C");
+      Serial.print("Humedad: "); Serial.print(hum); Serial.println(" %");
+      Serial.print("Distancia: "); Serial.print(dist); Serial.println(" cm");
+      Serial.print("Ángulo servo: "); Serial.println(ang);
+      Serial.println("--------------------------");
 
-          if (linea.indexOf("No Echo") >= 0)
-            activarAlarma(1000);
-
-          else if (linea.indexOf("Error al leer") >= 0)
-            activarAlarma(2000);
-
-          else  
-            activarLed();
-        }
-
-        linea = "";
-      } 
-      else {
-        linea += c;
-      }
+      // ----- Activar alarmas según contenido -----
+      if (linea.indexOf("No Echo") >= 0) activarAlarma(1000);
+      else if (linea.indexOf("Error al leer") >= 0) activarAlarma(2000);
+      else activarLed();
     }
   }
 
-  // -------------------------
-  // ENVÍO DE COMANDOS A SATÉLITE
-  // -------------------------
+  // ----- Envío de comandos al satélite -----
   if (Serial.available()) {
     String cmd = Serial.readStringUntil('\n');
-
-    LoRa.beginPacket();
-    LoRa.println(cmd);
-    LoRa.endPacket();
+    LoRaSerial.println(cmd);
   }
 
-  // -------------------------
-  // EFECTOS NO BLOQUEANTES
-  // -------------------------
+  // ----- Efectos no bloqueantes -----
   actualizarAlarma();
   actualizarLed();
 }
 
-// -------- FUNCIONES --------
+// ----- Funciones de alarma y LED -----
 void activarAlarma(float freq) { 
   tone(pinAlarma, freq); 
   alarmaActiva = true; 
@@ -89,7 +76,7 @@ void actualizarAlarma() {
   if (alarmaActiva && millis() - marcaAlarma >= 300) { 
     noTone(pinAlarma); 
     alarmaActiva = false; 
-  }
+  } 
 }
 
 void activarLed() { 
@@ -102,5 +89,5 @@ void actualizarLed() {
   if (ledActivo && millis() - marcaLed >= 150) { 
     digitalWrite(pinLed, LOW); 
     ledActivo = false; 
-  }
+  } 
 }
