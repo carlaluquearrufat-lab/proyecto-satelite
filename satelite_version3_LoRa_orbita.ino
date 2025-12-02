@@ -94,16 +94,13 @@ void setup() {
 void loop() {
   unsigned long ahora = millis();
 
-  // -------------------
+
   // Envío de número de lectura
-  // -------------------
   LoRa.beginPacket();
   LoRa.println(numeroEnvio++);
   LoRa.endPacket();
 
-  // -------------------
   // Lectura de comandos por LoRa
-  // -------------------
   int packetSize = LoRa.parsePacket();
   if (packetSize) {
     static String mensaje = "";
@@ -119,9 +116,8 @@ void loop() {
     }
   }
 
-  // -------------------
+
   // Lectura de temperatura
-  // -------------------
   if (leertemperatura && ahora - tiempoTemp >= INTERVALO_TEMP) {
     tiempoTemp = ahora;
     float t = dht.readTemperature();
@@ -139,9 +135,7 @@ void loop() {
     }
   }
 
-  // -------------------
   // Lectura de humedad
-  // -------------------
   if (leerhumedad && ahora - tiempoHum >= INTERVALO_HUM) {
     tiempoHum = ahora;
     float h = dht.readHumidity();
@@ -159,9 +153,7 @@ void loop() {
     }
   }
 
-  // -------------------
   // LED de error si falla temp y humedad
-  // -------------------
   if (ISNANT && ISNANH) {
     parpadeoLed(ledError, tiempoLedError, ahora);
     tone(BUZZER, 1000);
@@ -169,9 +161,8 @@ void loop() {
     noTone(BUZZER);
   }
 
-  // -------------------
+
   // Movimiento del servo
-  // -------------------
   if (leerdistancia && ahora - tiempoServo >= INTERVALO_SERVO) {
     tiempoServo = ahora;
     anguloActual += incremento * direccion;
@@ -180,17 +171,14 @@ void loop() {
     servo.write(anguloActual);
   }
 
-  // -------------------
   // Medición de distancia
-  // -------------------
   if (leerdistancia && ahora - tiempoDist >= INTERVALO_DIST) {
     tiempoDist = ahora;
     DISTANCIA = medirDistancia();
     if (DISTANCIA == -1.0) DISTANCIA = 0;
 
-  // -------------------
+
   // Simulación orbita
-  // ------------------
   if(ahora>nextUpdate) {
     simulate_orbit(ahora, 0, 0);
     nextUpdate = ahora + MILLIS_BETWEEN_UPDATES;
@@ -204,14 +192,10 @@ void loop() {
     LoRa.endPacket();
   }
 
-  // -------------------
   // LED de envío exitoso
-  // -------------------
   parpadeoLed(ledExito, tiempoLedExito, ahora);
 
-  // -------------------
   // Envío de todos los datos
-  // -------------------
   LoRa.beginPacket();
   LoRa.print("T: "); LoRa.print(TEMPERATURA, 1);
   LoRa.print(" H: "); LoRa.print(HUMEDAD, 1);
