@@ -238,7 +238,9 @@ Finalmente, se ha añadido control total sobre el periodo de envío de datos y l
 https://www.youtube.com/watch?v=ad9l3uBzaGk 
 
 # Versión 3: 
-Las novedades principales de la versión 3 son: un sistema de detección de errores en la comunicación, el envío por parte del satélite de datos sobre su posición que se mostrarán en una gráfica apropiada, la implementación de un sistema de comunicación inalámbrica entre el satélite y la estación de tierra y la implementación de un sistema de registro de eventos.
+En la versión 3 del proyecto se ha incorporado la opción de girar manualmente el servomotor a través de la interfaz gráfica. También podemos parar y reanudar cualquier dato del satélite: humedad, temperatura, distancia o los tres al mismo tiempo. Además, si se producen más de cinco errores de lectura de temperatura y humedad, se activará una alarma sonora en el satélite.
+
+Al haber completado los objetivos pendientes de la versión 2, hemos añadido algunas de las novedades de la versión 3: un simulador de órbitas —ya que no podemos enviar nuestra placa Arduino al espacio— en el que podemos ver en qué punto del planeta se encuentra “en tiempo real” a través de una gráfica en la interfaz. Asimismo, ahora la comunicación entre la placa de la estación de tierra y la placa Arduino del satélite es inalámbrica, gracias al kit LoRa.
 
 **Código relevante de la versión 3:**
 
