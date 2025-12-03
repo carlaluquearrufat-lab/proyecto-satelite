@@ -73,12 +73,16 @@ void setup() {
   pinMode(ledExito, OUTPUT);
   pinMode(ledError, OUTPUT);
   pinMode(BUZZER, OUTPUT);
-  digitalWrite(BUZZER, LOW);
+  noTone(BUZZER);
 
   Serial.begin(9600);
   LoRaSerial.begin(9600);
-
   dht.begin();
+
+  nextUpdate = MILLIS_BETWEEN_UPDATES;
+  r = R_EARTH + ALTITUDE;
+    real_orbital_period = 2 * PI * sqrt(pow(r, 3) / (G * M));
+  
   Serial.println("SATÉLITE listo para enviar datos por LoRa...");
 }
 
