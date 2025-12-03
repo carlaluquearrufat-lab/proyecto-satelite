@@ -1,5 +1,5 @@
 #include <Servo.h>
-#include <LoRa.h>
+#include <SoftwareSerial.h>
 #include <DHT.h>
 
 // ------CONSTANTES -----
@@ -18,7 +18,6 @@ const int LED = 3;
 const int ledExito = 4;
 const int ledError = 6;
 const int BUZZER = 7;
-
 const int DHTPIN = 2;
 const int DHTTYPE = DHT11;
 
@@ -27,18 +26,18 @@ const unsigned long INTERVALO_SERVO = 20;
 const unsigned long INTERVALO_DIST = 80;
 const unsigned long INTERVALO_TEMP = 3000;
 const unsigned long INTERVALO_HUM = 3000;
+const unsigned long INTERVALO_ENVIO = 2000; // envío LoRa
 const unsigned long INTERVALO_LED = 500;
-const unsigned long INTERVALO_BUZZER = 1000;
-const unsigned long nextUpdate; //Cuando la siguiente simulación debe ocurrir
+const unsigned long nextUpdate;
 
 // ----- VARIABLES -----
 unsigned long tiempoServo = 0;
 unsigned long tiempoDist = 0;
 unsigned long tiempoTemp = 0;
 unsigned long tiempoHum = 0;
+unsigned long tiempoEnvio = 0;
 unsigned long tiempoLedExito = 0;
 unsigned long tiempoLedError = 0;
-unsigned long tiempoBuzzer = 0;
 double real_orbital_period; //Periodo real acual del satelite
 double r; //Duistancia entre el centro de la Tierra y el satelite
 
@@ -52,7 +51,6 @@ float HUMEDAD = 0;
 
 bool ISNANT = false;
 bool ISNANH = false;
-bool alarma = false;
 
 bool leertemperatura = true;
 bool leerhumedad = true;
@@ -60,11 +58,11 @@ bool leerdistancia = true;
 
 Servo servo;
 DHT dht(DHTPIN, DHTTYPE);
+SoftwareSerial LoRaSerial(10, 11); // RX, TX
 
-int contadorErrores = 0;
 int numeroEnvio = 1;
 
-// ---------- SETUP ----------
+// ----- SETUP -----
 void setup() {
   servo.attach(13);
   servo.write(anguloActual);
@@ -78,97 +76,72 @@ void setup() {
   digitalWrite(BUZZER, LOW);
 
   Serial.begin(9600);
+  LoRaSerial.begin(9600);
 
   dht.begin();
-
-  nextUpdate = MILLIS_BETWEEN_UPDATES; 
-  r = R_EARTH + ALTITUDE;
-    real_orbital_period = 2 * PI * sqrt(pow(r, 3) / (G * M));
-
-  // ------------ INICIO DE LoRa ------------
-  if (!LoRa.begin(433E6)) {        // Usa la frecuencia correspondiente
-    Serial.println("Error al iniciar LoRa");
-    while (1);
-  }
-  Serial.println("LoRa iniciado correctamente");
+  Serial.println("SATÉLITE listo para enviar datos por LoRa...");
 }
 
-// ---------- LOOP ----------
+// ----- LOOP -----
 void loop() {
   unsigned long ahora = millis();
 
-
-  // Envío de número de lectura
-  LoRa.beginPacket();
-  LoRa.println(numeroEnvio++);
-  LoRa.endPacket();
-
+  // -------------------
   // Lectura de comandos por LoRa
-  int packetSize = LoRa.parsePacket();
-  if (packetSize) {
+  // -------------------
+  if (LoRaSerial.available()) {
     static String mensaje = "";
-    while (LoRa.available()) {
-      char c = LoRa.read();
-      if (c == '\n') {
-        mensaje.trim();
-        procesarComando(mensaje);
-        mensaje = "";
-      } else {
-        mensaje += c;
-      }
-    }
+    char c = LoRaSerial.read();
+    if (c == '\n') {
+      mensaje.trim();
+      procesarComando(mensaje);
+      mensaje = "";
+    } else mensaje += c;
   }
 
-
+  // -------------------
   // Lectura de temperatura
+  // -------------------
   if (leertemperatura && ahora - tiempoTemp >= INTERVALO_TEMP) {
     tiempoTemp = ahora;
     float t = dht.readTemperature();
     if (isnan(t)) {
       ISNANT = true;
-      contadorErrores++;
-
-      LoRa.beginPacket();
-      LoRa.println("Error al leer temperatura");
-      LoRa.endPacket();
-
+      LoRaSerial.println("Error al leer temperatura");
     } else {
       TEMPERATURA = t;
       ISNANT = false;
-      contadorErrores = 0;
     }
   }
 
+  // -------------------
   // Lectura de humedad
+  // -------------------
   if (leerhumedad && ahora - tiempoHum >= INTERVALO_HUM) {
     tiempoHum = ahora;
     float h = dht.readHumidity();
     if (isnan(h)) {
       ISNANH = true;
-      contadorErrores++;
-
-      LoRa.beginPacket();
-      LoRa.println("Error al leer humedad");
-      LoRa.endPacket();
-
+      LoRaSerial.println("Error al leer humedad");
     } else {
       HUMEDAD = h;
       ISNANH = false;
-      contadorErrores = 0;
     }
   }
 
-  // LED de error si falla temp y humedad
+  // -------------------
+  // LED de error y buzzer
+  // -------------------
   if (ISNANT && ISNANH) {
     parpadeoLed(ledError, tiempoLedError, ahora);
-  } 
-  // Alarma sonora si hay mas de 5 errores de lectura de temperatura o humedad consecutivos
-  if (contadorErrores >= 5){
-    alarmasonora(BUZZER, tiempoBuzzer, ahora);
+    tone(BUZZER, 1000);
+  } else {
+    noTone(BUZZER);
   }
 
-
-  // Movimiento del servo
+  // -------------------
+  // Movimiento suave del servo
+  // -------------------
   if (leerdistancia && ahora - tiempoServo >= INTERVALO_SERVO) {
     tiempoServo = ahora;
     anguloActual += incremento * direccion;
@@ -177,41 +150,41 @@ void loop() {
     servo.write(anguloActual);
   }
 
-  // Medición de distancia
+  // -------------------
+  // Medición de distancia ultrasónica
+  // -------------------
   if (leerdistancia && ahora - tiempoDist >= INTERVALO_DIST) {
     tiempoDist = ahora;
     DISTANCIA = medirDistancia();
-    if (DISTANCIA == -1.0) DISTANCIA = 0;
+    if (DISTANCIA < 0) DISTANCIA = 0; // evitar -1
+  }
 
-
+  // -----------------
   // Simulación orbita
+  // -----------------
   if(ahora>nextUpdate) {
     simulate_orbit(ahora, 0, 0);
     nextUpdate = ahora + MILLIS_BETWEEN_UPDATES;
   }
+  
+  // -------------------
+  // Envío de datos por LoRa cada INTERVALO_ENVIO
+  // -------------------
+  if (ahora - tiempoEnvio >= INTERVALO_ENVIO) {
+    tiempoEnvio = ahora;
+    String mensaje = "Num:" + String(numeroEnvio++) +
+                     " T:" + String(TEMPERATURA,1) +
+                     " H:" + String(HUMEDAD,1) +
+                     " Dist:" + String(DISTANCIA,1) +
+                     " Ang:" + String(anguloActual);
+    LoRaSerial.println(mensaje);
 
-    LoRa.beginPacket();
-    LoRa.print("DATA ");
-    LoRa.print(anguloActual);
-    LoRa.print(",");
-    LoRa.println(DISTANCIA, 1);
-    LoRa.endPacket();
+    // LED de envío exitoso
+    parpadeoLed(ledExito, tiempoLedExito, ahora);
   }
-
-  // LED de envío exitoso
-  parpadeoLed(ledExito, tiempoLedExito, ahora);
-
-  // Envío de todos los datos
-  LoRa.beginPacket();
-  LoRa.print("T: "); LoRa.print(TEMPERATURA, 1);
-  LoRa.print(" H: "); LoRa.print(HUMEDAD, 1);
-  LoRa.print(" Dist(cm): ");
-  if (DISTANCIA < 0) LoRa.println("No Echo");
-  else LoRa.println(DISTANCIA, 1);
-  LoRa.endPacket();
 }
 
-// ---------- FUNCIONES ----------
+// ----- FUNCIONES -----
 float medirDistancia() {
   digitalWrite(TRIG, LOW);
   delayMicroseconds(2);
@@ -225,26 +198,14 @@ float medirDistancia() {
 }
 
 void parpadeoLed(int ledPin, unsigned long &marca, unsigned long ahora) {
-  if (ahora - marca >= INTERVALO_LED) {
+  if (ahora - marca >= 500) {
     marca = ahora;
     digitalWrite(ledPin, !digitalRead(ledPin));
   }
 }
 
-void alarmasonora(int BuzzerPin, unsigned long &marca, unsigned long ahora) {
-  if (ahora - marca >= INTERVALO_BUZZER) {
-    marca = ahora;
-    alarma = !alarma;
-    if (alarma){
-      tone(BUZZER,1000);
-    }
-    else {
-      noTone(BUZZER); 
-    }
-  }
-}
-
 void procesarComando(String cmd) {
+  cmd.trim();
   if (cmd.indexOf("STOP") >= 0) leertemperatura = leerhumedad = leerdistancia = false;
   else if (cmd.indexOf("REANUDAR") >= 0) leertemperatura = leerhumedad = leerdistancia = true;
   else if (cmd.indexOf("PararT") >= 0) leertemperatura = false;
@@ -253,14 +214,12 @@ void procesarComando(String cmd) {
   else if (cmd.indexOf("IniciarT") >= 0) leertemperatura = true;
   else if (cmd.indexOf("IniciarH") >= 0) leerhumedad = true;
   else if (cmd.indexOf("IniciarD") >= 0) leerdistancia = true;
-
-  // --- CONTROL DEL SERVO MANUAL ---
   else if (cmd.startsWith("DIR:")) {
     int ang = cmd.substring(4).toInt();
     if (ang < 0) ang = 0;
     if (ang > 180) ang = 180;
     servo.write(ang);
-    anguloActual = ang;
+    anguloActual = ang;  
   }
 }
 
@@ -289,4 +248,3 @@ void simulate_orbit(unsigned long millis, double inclination, int ecef) {
     Serial.print(z);
     Serial.println(" m)");
 }
-
