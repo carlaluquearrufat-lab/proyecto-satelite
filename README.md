@@ -334,8 +334,7 @@ Al haber completado los objetivos pendientes de la versión 2, hemos añadido al
 
     
 **Video introductorio de la versión 3:**
-
-
+https://www.youtube.com/watch?v=icbPOi3H1ic
 
 # Objetivos a cumplir para la versión 4: 
 - El usuario puede elegir dónde deben calcularse las medias de las 10 últimas temperaturas (si en el satélite o en tierra).
