@@ -164,7 +164,7 @@ void loop() {
         String radar = "DATA " + String(anguloActual) + "," + String(DISTANCIA,1);
         LoRaSerial.println(radar);  // asegura que la interfaz detecte la línea DATA
         
-        String mensaje = "#:" + String(numeroEnvio++) +
+        String mensaje = "#:" + String(numeroEnvio) +
                          " 1:" + String(TEMPERATURA,1) +
                          " 2:" + String(HUMEDAD,1) +
                          " 3:" + String(DISTANCIA,1) +
@@ -173,6 +173,8 @@ void loop() {
 
         // LED de envío exitoso
         parpadeoLed(ledExito, tiempoLedExito, ahora);
+
+        numeroEnvio++;
     }
 }
 
