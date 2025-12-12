@@ -83,7 +83,7 @@ def lector_serial():
 
                 with data_lock:
                     # Lectura de temperatura
-                    if 'T:' in linea:
+                    if '1:' in linea:
                         try:
                             val = float(linea.split('T:')[-1].split()[0])
                             temperaturas.append(val)
@@ -91,7 +91,7 @@ def lector_serial():
                         except Exception:
                             pass
                     # Lectura de humedad
-                    if 'H:' in linea:
+                    if '2:' in linea:
                         try:
                             val = float(linea.split('H:')[-1].split()[0])
                             humedades.append(val)
@@ -185,7 +185,7 @@ def init_radar():
     canvas_radar.get_tk_widget().pack(fill='both', expand=True)
     threading.Thread(target=actualizar_radar, daemon=True).start()
     if ser is not None:
-        ser.write(b"IniciarD\n")
+        ser.write(b"R3\n")
 
 def actualizar_radar():
     global radarEncendido
@@ -227,7 +227,7 @@ def enviar_direccion(val):
     angulo = int(90 + val)
     angulo = max(0, min(180, angulo))
     if ser is not None:
-        ser.write(f"DIR:{angulo}\n".encode())
+        ser.write(f"RM:{angulo}\n".encode())
         print("Enviado:", angulo)
 
 # ---------------- ORBITA (INTEGRADA EN LA INTERFAZ) ----------------
@@ -320,24 +320,24 @@ def TEMPClick():
     grafica_temp = True
     init_grafica_temp()
     threading.Thread(target=plot_temp, daemon=True).start()
-    if ser: ser.write(b"IniciarT\n")
+    if ser: ser.write(b"R1\n")
 
 def HUMClick():
     global grafica_hum
     grafica_hum = True
     init_grafica_temp()
     threading.Thread(target=plot_hum, daemon=True).start()
-    if ser: ser.write(b"IniciarH\n")
+    if ser: ser.write(b"R2\n")
 
 def STOPTClick():
     global grafica_temp
     grafica_temp = False
-    if ser: ser.write(b"PararT\n")
+    if ser: ser.write(b"S1\n")
 
 def STOPHClick():
     global grafica_hum
     grafica_hum = False
-    if ser: ser.write(b"PararH\n")
+    if ser: ser.write(b"S2\n")
 
 def RADARClick():
     init_radar()
@@ -345,7 +345,6 @@ def RADARClick():
 def RADARMClick():
     radar_manual()
     init_radar()
-    if ser: ser.write(b"RadarManual\n")
 
 def ORBITClick():
     init_orbita()
