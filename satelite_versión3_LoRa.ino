@@ -44,6 +44,7 @@ bool ISNANH = false;
 bool leertemperatura = true;
 bool leerhumedad = true;
 bool leerdistancia = true;
+bool radarmanual = false;
 
 Servo servo;
 DHT dht(DHTPIN, DHTTYPE);
@@ -137,7 +138,7 @@ void loop() {
     // -------------------
     // Movimiento suave del servo
     // -------------------
-    if (leerdistancia && ahora - tiempoServo >= INTERVALO_SERVO) {
+    if (!radarmanual && leerdistancia && ahora - tiempoServo >= INTERVALO_SERVO) {
         tiempoServo = ahora;
         anguloActual += incremento * direccion;
         if (anguloActual >= 180) direccion = -1;
@@ -164,10 +165,10 @@ void loop() {
         LoRaSerial.println(radar);  // asegura que la interfaz detecte la línea DATA
         
         String mensaje = "#:" + String(numeroEnvio++) +
-                         "1:" + String(TEMPERATURA,1) +
-                         "2:" + String(HUMEDAD,1) +
-                         "3:" + String(DISTANCIA,1) +
-                         "4:" + String(anguloActual);
+                         " 1:" + String(TEMPERATURA,1) +
+                         " 2:" + String(HUMEDAD,1) +
+                         " 3:" + String(DISTANCIA,1) +
+                         " 4:" + String(anguloActual);
         LoRaSerial.println(mensaje);
 
         // LED de envío exitoso
@@ -211,7 +212,8 @@ void procesarComando(String cmd) {
         leerdistancia = true;
     // Radar Manual
     else if (cmd.startsWith("RM:")) {
-        int ang = cmd.substring(4).toInt();
+        radarmanual = true;
+        int ang = cmd.substring(3).toInt();
         if (ang < 0) ang = 0;
         if (ang > 180) ang = 180;
         servo.write(ang);
