@@ -137,10 +137,30 @@ def init_grafica_temp():
         canvas_temp = FigureCanvasTkAgg(fig_temp, master=plot_frame)
         canvas_temp.get_tk_widget().pack(fill='both', expand=True)
 
-MAX_POINTS_TEMP = 50  # solo mostramos las últimas 50 lecturas
+# Variables globales para las líneas
+linea_temp = None
+linea_media = None
+linea_hum = None
 
 def plot_temp():
-    global grafica_temp
+    global grafica_temp, linea_temp, linea_media
+    MAX_POINTS_TEMP = 50
+    init_grafica_temp()
+    
+    with data_lock:
+        ys = temperaturas[-MAX_POINTS_TEMP:]
+        xs = list(range(len(ys)))
+
+    # Inicializar líneas si no existen
+    if linea_temp is None:
+        linea_temp, = ax_temp.plot(xs, ys, color='blue', label='TEMPERATURA')
+        linea_media, = ax_temp.plot(xs, ys, color='green', label='MEDIA 10')
+        ax_temp.set_xlabel('Últimas lecturas')
+        ax_temp.set_ylabel('Temperatura (°C)')
+        ax_temp.legend()
+        ax_temp.set_xlim(0, MAX_POINTS_TEMP)
+        ax_temp.set_ylim(0, max(ys + [30]))
+    
     while grafica_temp:
         with data_lock:
             ys_all = list(temperaturas)
@@ -148,36 +168,53 @@ def plot_temp():
             time.sleep(0.1)
             continue
 
-        # Ventana deslizante
         ys = ys_all[-MAX_POINTS_TEMP:]
         xs = list(range(len(ys)))
 
-        ax_temp.clear()
-        ax_temp.plot(xs, ys, color='blue', label='TEMPERATURA')
+        # Actualizar líneas sin limpiar el eje
+        linea_temp.set_data(xs, ys)
         if len(ys) >= 10:
-            media_linea = [sum(ys[-10:])/10.0]*len(ys)
-            ax_temp.plot(xs, media_linea, color='green', label='MEDIA 10')
-        ax_temp.set_xlabel('Últimas lecturas')
-        ax_temp.set_ylabel('Temperatura (°C)')
-        ax_temp.legend()
-        canvas_temp.draw_idle()
-        time.sleep(0.1)  # actualización más rápida y fluida
+            media = [sum(ys[-10:])/10.0]*len(ys)
+            linea_media.set_data(xs, media)
 
+        # Ajustar límites dinámicamente si quieres
+        ymin = min(ys) - 1
+        ymax = max(ys) + 1
+        ax_temp.set_ylim(ymin, ymax)
+
+        canvas_temp.draw_idle()
+        time.sleep(0.1)
 
 def plot_hum():
-    global grafica_hum
+    global grafica_hum, linea_hum
+    MAX_POINTS_TEMP = 50
+    init_grafica_temp()
+    
+    if linea_hum is None:
+        with data_lock:
+            ys = humedades[-MAX_POINTS_TEMP:]
+            xs = list(range(len(ys)))
+        linea_hum, = ax_temp.plot(xs, ys, color='red', label='HUMEDAD')
+        ax_temp.legend()
+
     while grafica_hum:
         with data_lock:
-            xs = list(range(len(humedades)))
-            ys = list(humedades)
-        if not ys:
+            ys_all = list(humedades)
+        if not ys_all:
             time.sleep(0.1)
             continue
-        ax_temp.clear()
-        ax_temp.plot(xs, ys, color='red', label='HUMEDAD')
-        ax_temp.legend()
+
+        ys = ys_all[-MAX_POINTS_TEMP:]
+        xs = list(range(len(ys)))
+
+        linea_hum.set_data(xs, ys)
+        ymin = min(ys) - 1
+        ymax = max(ys) + 1
+        ax_temp.set_ylim(ymin, ymax)
+
         canvas_temp.draw_idle()
         time.sleep(0.25)
+
 
 # ---------------- RADAR ----------------
 def init_radar():
