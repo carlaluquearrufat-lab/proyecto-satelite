@@ -106,10 +106,9 @@ void loop() {
             if (linea.indexOf("1!2") >= 0) {
                 activarAlarma(1000);
                 actualizarAlarma();
-            else 
-                activarLed();
-                actualizarLed();
-            
+            } else {
+                parpadeoLed();
+            }
         }
         
     }
@@ -119,6 +118,7 @@ void loop() {
         String cmd = Serial.readStringUntil('\n');
         LoRaSerial.println(cmd);
     }
+
 }
 
 // ----- Funciones de alarma y LED -----
@@ -135,16 +135,10 @@ void actualizarAlarma() {
     }
 }
 
-void activarLed() {
-    digitalWrite(pinLed, HIGH);
-    ledActivo = true;
-    marcaLed = millis();
-}
-
-void actualizarLed() {
-    if (ledActivo && millis() - marcaLed >= 150) {
-        digitalWrite(pinLed, LOW);
-        ledActivo = false;
+void parpadeoLed() {
+    if (millis() - marcaLed >= 300) {
+        marcaLed = millis();
+        digitalWrite(pinLed, !digitalRead(pinLed));
     }
 }
 
@@ -173,3 +167,4 @@ void simulate_orbit(unsigned long millis, double inclination, int ecef) {
     Serial.print(z);
     Serial.println(" m)");
 }
+
