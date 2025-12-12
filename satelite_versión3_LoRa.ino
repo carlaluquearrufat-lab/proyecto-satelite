@@ -97,7 +97,7 @@ void loop() {
         float t = dht.readTemperature();
         if (isnan(t)) {
             ISNANT = true;
-            LoRaSerial.println("Error al leer temperatura");
+            LoRaSerial.println("1!");
         } else {
             TEMPERATURA = t;
             ISNANT = false;
@@ -112,7 +112,7 @@ void loop() {
         float h = dht.readHumidity();
         if (isnan(h)) {
             ISNANH = true;
-            LoRaSerial.println("Error al leer humedad");
+            LoRaSerial.println("2!");
         } else {
             HUMEDAD = h;
             ISNANH = false;
@@ -158,11 +158,11 @@ void loop() {
         String radar = "DATA " + String(anguloActual) + "," + String(DISTANCIA,1);
         LoRaSerial.println(radar);  // asegura que la interfaz detecte la línea DATA
         
-        String mensaje = "Num:" + String(numeroEnvio++) +
-                         " T:" + String(TEMPERATURA,1) +
-                         " H:" + String(HUMEDAD,1) +
-                         " Dist:" + String(DISTANCIA,1) +
-                         " Ang:" + String(anguloActual);
+        String mensaje = "#:" + String(numeroEnvio++) +
+                         "1:" + String(TEMPERATURA,1) +
+                         "2:" + S#tring(HUMEDAD,1) +
+                         "3:" + String(DISTANCIA,1) +
+                         "4:" + String(anguloActual);
         LoRaSerial.println(mensaje);
 
         // LED de envío exitoso
@@ -192,21 +192,21 @@ void parpadeoLed(int ledPin, unsigned long &marca, unsigned long ahora) {
 
 void procesarComando(String cmd) {
     cmd.trim();
-    if (cmd.indexOf("STOP") >= 0) 
+    if (cmd.indexOf("S") >= 0) 
         leertemperatura = leerhumedad = leerdistancia = false;
-    else if (cmd.indexOf("REANUDAR") >= 0) 
+    else if (cmd.indexOf("R") >= 0) 
         leertemperatura = leerhumedad = leerdistancia = true;
-    else if (cmd.indexOf("PararT") >= 0) 
+    else if (cmd.indexOf("S1") >= 0) 
         leertemperatura = false;
-    else if (cmd.indexOf("PararH") >= 0) 
+    else if (cmd.indexOf("S2") >= 0) 
         leerhumedad = false;
-    else if (cmd.indexOf("PararD") >= 0) 
+    else if (cmd.indexOf("S3") >= 0) 
         leerdistancia = false;
-    else if (cmd.indexOf("IniciarT") >= 0) 
+    else if (cmd.indexOf("R1") >= 0) 
         leertemperatura = true;
-    else if (cmd.indexOf("IniciarH") >= 0) 
+    else if (cmd.indexOf("R2") >= 0) 
         leerhumedad = true;
-    else if (cmd.indexOf("IniciarD") >= 0) 
+    else if (cmd.indexOf("R3") >= 0) 
         leerdistancia = true;
     else if (cmd.startsWith("DIR:")) {
         int ang = cmd.substring(4).toInt();
