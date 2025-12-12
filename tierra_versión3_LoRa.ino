@@ -105,8 +105,10 @@ void loop() {
             // ----- Activar alarmas según contenido -----
             if (linea.indexOf("1!2") >= 0) {
                 activarAlarma(1000);
+                actualizarAlarma();
             else 
                 activarLed();
+                actualizarLed();
             
         }
         
@@ -117,10 +119,6 @@ void loop() {
         String cmd = Serial.readStringUntil('\n');
         LoRaSerial.println(cmd);
     }
-
-    // ----- Efectos no bloqueantes -----
-    actualizarAlarma();
-    actualizarLed();
 }
 
 // ----- Funciones de alarma y LED -----
