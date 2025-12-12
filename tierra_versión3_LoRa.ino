@@ -68,22 +68,22 @@ void loop() {
             // Extraer cada valor usando "tag:value"
             int idx;
 
-            if ((idx = linea.indexOf("Num:")) >= 0) 
+            if ((idx = linea.indexOf("#:")) >= 0) 
                 num = linea.substring(idx + 4, linea.indexOf(" ", idx)).toInt();
             
-            if ((idx = linea.indexOf("T:")) >= 0) 
+            if ((idx = linea.indexOf("1:")) >= 0) 
                 temp = linea.substring(idx + 2, linea.indexOf(" ", idx)).toFloat();
             
-            if ((idx = linea.indexOf("H:")) >= 0) 
+            if ((idx = linea.indexOf("2:")) >= 0) 
                 hum = linea.substring(idx + 2, linea.indexOf(" ", idx)).toFloat();
             
-            if ((idx = linea.indexOf("Dist:")) >= 0) 
+            if ((idx = linea.indexOf("3:")) >= 0) 
                 dist = linea.substring(
                     idx + 5, 
                     linea.indexOf(" ", idx + 5) == -1 ? linea.length() : linea.indexOf(" ", idx + 5)
                 ).toFloat();
             
-            if ((idx = linea.indexOf("Ang:")) >= 0) 
+            if ((idx = linea.indexOf("4:")) >= 0) 
                 ang = linea.substring(idx + 4).toInt();
 
             // Mostrar datos parseados
@@ -103,13 +103,13 @@ void loop() {
             Serial.println("--------------------------");
 
             // ----- Activar alarmas según contenido -----
-            if (linea.indexOf("No Echo") >= 0) 
+            if (linea.indexOf("1!2") >= 0) {
                 activarAlarma(1000);
-            else if (linea.indexOf("Error al leer") >= 0) 
-                activarAlarma(2000);
             else 
                 activarLed();
+            
         }
+        
     }
 
     // ----- Envío de comandos al satélite -----
