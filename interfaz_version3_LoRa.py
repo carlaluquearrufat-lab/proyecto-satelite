@@ -230,8 +230,7 @@ def init_radar():
     canvas_radar = FigureCanvasTkAgg(fig_radar, master=radar_frame)
     canvas_radar.get_tk_widget().pack(fill='both', expand=True)
     threading.Thread(target=actualizar_radar, daemon=True).start()
-    if ser is not None:
-        ser.write(b"R3\n")
+    
 
 def actualizar_radar():
     global radarEncendido
@@ -387,6 +386,7 @@ def STOPHClick():
 
 def RADARClick():
     init_radar()
+    if ser: ser.write(b"R3\n")
 
 def RADARMClick():
     radar_manual()
