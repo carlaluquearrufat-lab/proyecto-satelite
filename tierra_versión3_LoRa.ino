@@ -69,7 +69,7 @@ void loop() {
             int idx;
 
             if ((idx = linea.indexOf("#:")) >= 0) 
-                num = linea.substring(idx + 4, linea.indexOf(" ", idx)).toInt();
+                num = linea.substring(idx + 2, linea.indexOf(" ", idx)).toInt();
             
             if ((idx = linea.indexOf("1:")) >= 0) 
                 temp = linea.substring(idx + 2, linea.indexOf(" ", idx)).toFloat();
@@ -79,12 +79,12 @@ void loop() {
             
             if ((idx = linea.indexOf("3:")) >= 0) 
                 dist = linea.substring(
-                    idx + 5, 
-                    linea.indexOf(" ", idx + 5) == -1 ? linea.length() : linea.indexOf(" ", idx + 5)
+                    idx + 2, 
+                    linea.indexOf(" ", idx + 2) == -1 ? linea.length() : linea.indexOf(" ", idx + 2)
                 ).toFloat();
             
             if ((idx = linea.indexOf("4:")) >= 0) 
-                ang = linea.substring(idx + 4).toInt();
+                ang = linea.substring(idx + 2).toInt();
 
             // Mostrar datos parseados
             Serial.print("Lectura #: ");
