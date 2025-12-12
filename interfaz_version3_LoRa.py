@@ -2,6 +2,13 @@ from tkinter import *
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import serial, threading, time, math
+import sys
+import re
+import matplotlib
+
+# IMPORTANT: set backend before importing pyplot
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
 
 # ---------------- SERIAL ----------------
 device = 'COM7'
@@ -13,13 +20,18 @@ except Exception as e:
     ser = None
 
 # ---------------- VARIABLES ----------------
+data_lock = threading.Lock()
+
 temperaturas = []
 humedades = []
 distancias = []
 angulos = []
 eje_x = []
 
-data_lock = threading.Lock()
+
+# Máxima cantidad de puntos a mostrar en las gráficas en tiempo real
+MAX_POINTS_RADAR = 5    # número de lecturas visibles en el radar (ventana deslizante)
+MAX_POINTS_ORBIT = 10   # número de puntos visibles en la órbita
 
 # Flags de graficas
 grafica_temp = False
@@ -42,6 +54,10 @@ fig_orbita = None
 ax_orbita = None
 
 # Variables para la órbita
+# Regex robusta: acepta notación científica, espacios variables, opcional 'm'
+regex = re.compile(
+    r"Position:\s*\(X:\s*([-\d.eE]+)\s*m?,\s*Y:\s*([-\d.eE]+)\s*m?,\s*Z:\s*([-\d.eE]+)\s*m?\)"
+)
 R_EARTH = 6371000  # Radio de la Tierra en metros
 x_vals = []
 y_vals = []
@@ -62,6 +78,9 @@ def lector_serial():
                 except:
                     linea = linea_raw.decode('latin1', errors='ignore').strip()
 
+                # Debug minimal: print raw position lines to help see format (comment if noisy)
+                # print("RAW serial:", repr(linea))
+
                 with data_lock:
                     # Lectura de temperatura
                     if 'T:' in linea:
@@ -69,13 +88,15 @@ def lector_serial():
                             val = float(linea.split('T:')[-1].split()[0])
                             temperaturas.append(val)
                             eje_x.append(len(temperaturas)-1)
-                        except: pass
+                        except Exception:
+                            pass
                     # Lectura de humedad
                     if 'H:' in linea:
                         try:
                             val = float(linea.split('H:')[-1].split()[0])
                             humedades.append(val)
-                        except: pass
+                        except Exception:
+                            pass
                     # Lectura de datos radar (Arduino envía DATA angulo,distancia)
                     if linea.startswith('DATA'):
                         try:
@@ -83,18 +104,25 @@ def lector_serial():
                             ang, dist = map(float, valores.split(','))
                             angulos.append(ang)
                             distancias.append(dist)
-                        except: pass
-                    # Lectura de posición de órbita (Position: X:.. Y:.. Z:..)
-                    if 'Position:' in linea:
+                        except Exception:
+                            pass
+                    # Lectura de posición de órbita: use regex robusta
+                    # This replaces the previous fragile manual split approach
+                    if 'Position' in linea:
                         try:
-                            parts = linea.replace('Position:','').replace('(','').replace(')','').split(',')
-                            x = float(parts[0].split(':')[1])
-                            y = float(parts[1].split(':')[1])
-                            z = float(parts[2].split(':')[1])
-                            x_vals.append(x)
-                            y_vals.append(y)
-                            z_vals.append(z)
-                        except: pass
+                            m = regex.search(linea)
+                            if m:
+                                x = float(m.group(1))
+                                y = float(m.group(2))
+                                z = float(m.group(3))
+                                x_vals.append(x)
+                                y_vals.append(y)
+                                z_vals.append(z)
+                            else:
+                                # If regex doesn't match, optional: try a fallback manual parse (silently ignore)
+                                pass
+                        except Exception:
+                            pass
         except Exception as e:
             print("Error lector_serial:", e)
         time.sleep(0.01)
@@ -164,15 +192,19 @@ def actualizar_radar():
     while radarEncendido:
         try:
             with data_lock:
-                angs = list(angulos)
-                dists = list(distancias)
-            if not angs or not dists or len(angs) != len(dists):
+                angs_all = list(angulos)
+                dists_all = list(distancias)
+            # Take only the last MAX_POINTS_RADAR points for plotting (sliding window)
+            if not angs_all or not dists_all or len(angs_all) != len(dists_all):
                 time.sleep(0.1)
                 continue
+            angs = angs_all[-MAX_POINTS_RADAR:]
+            dists = dists_all[-MAX_POINTS_RADAR:]
+
             ax_radar.clear()
             ax_radar.set_theta_zero_location("E")
             ax_radar.set_theta_direction(-1)
-            ax_radar.set_ylim(0, max(dists)*1.1)
+            ax_radar.set_ylim(0, max(dists)*1.1 if dists else 1)
             thetas = [math.radians(a) for a in angs]
             ax_radar.plot(thetas, dists, marker='o', linestyle='-', linewidth=2)
             ax_radar.plot([thetas[-1]], [dists[-1]], marker='o', markersize=8)
@@ -198,40 +230,89 @@ def enviar_direccion(val):
         ser.write(f"DIR:{angulo}\n".encode())
         print("Enviado:", angulo)
 
-# ---------------- ORBITA ----------------
+# ---------------- ORBITA (INTEGRADA EN LA INTERFAZ) ----------------
 def init_orbita():
     global canvas_orbita, fig_orbita, ax_orbita, orbitaEncendida
+
     if orbitaEncendida:
         return
     orbitaEncendida = True
+
+    # Create figure embedded in orbit_frame
     fig_orbita = Figure(figsize=(6,6), dpi=100)
     ax_orbita = fig_orbita.add_subplot(111)
     ax_orbita.set_aspect('equal', 'box')
+    ax_orbita.set_xlabel('X (metros)')
+    ax_orbita.set_ylabel('Y (metros)')
+    ax_orbita.set_title('Órbita Ecuatorial del Satélite (Vista desde el Polo Norte)')
+    ax_orbita.grid(True)
+
+    # Ensure initial limits include Earth
     ax_orbita.set_xlim(-7e6, 7e6)
     ax_orbita.set_ylim(-7e6, 7e6)
-    ax_orbita.set_xlabel('X (m)')
-    ax_orbita.set_ylabel('Y (m)')
-    ax_orbita.set_title('Orbit View')
+
+    # Initial artists
+    orbit_plot, = ax_orbita.plot([], [], 'bo-', label='Satellite Orbit', markersize=2)
+    last_point_plot = ax_orbita.scatter([], [], color='red', s=50, label='Last Point')
+    earth_circle = plt.Circle((0, 0), R_EARTH, color='orange', fill=False, label='Earth Surface')
+    ax_orbita.add_artist(earth_circle)
+    earth_slice = plt.Circle((0, 0), 0, color='orange', fill=False, linestyle='--', label='Earth Slice at Z')
+    ax_orbita.add_artist(earth_slice)
+    ax_orbita.legend()
+
     canvas_orbita = FigureCanvasTkAgg(fig_orbita, master=orbit_frame)
     canvas_orbita.get_tk_widget().pack(fill='both', expand=True)
-    threading.Thread(target=actualizar_orbita, daemon=True).start()
 
-def actualizar_orbita():
-    global x_vals, y_vals
-    while orbitaEncendida:
-        with data_lock:
-            xs = list(x_vals)
-            ys = list(y_vals)
-        if not xs or not ys:
-            time.sleep(0.1)
-            continue
-        ax_orbita.clear()
-        ax_orbita.set_aspect('equal', 'box')
-        ax_orbita.set_xlim(-7e6,7e6)
-        ax_orbita.set_ylim(-7e6,7e6)
-        ax_orbita.plot(xs, ys, 'bo-', markersize=2, label='Orbit')
-        canvas_orbita.draw_idle()
-        time.sleep(0.25)
+    # Thread that updates the orbit plot using x_vals,y_vals,z_vals
+    def actualizar_orbita():
+        nonlocal earth_slice, orbit_plot, last_point_plot
+        while orbitaEncendida:
+            try:
+                with data_lock:
+                    xs_all = list(x_vals)
+                    ys_all = list(y_vals)
+                    zs_all = list(z_vals)
+                # Use a sliding window for plotting to avoid too many points
+                if not xs_all or not ys_all:
+                    time.sleep(0.15)
+                    continue
+                xs = xs_all[-MAX_POINTS_ORBIT:]
+                ys = ys_all[-MAX_POINTS_ORBIT:]
+                zs = zs_all[-MAX_POINTS_ORBIT:]
+
+                # Update orbit line and last point
+                orbit_plot.set_data(xs, ys)
+                last_point_plot.set_offsets([[xs[-1], ys[-1]]])
+
+                # Update earth slice based on last z
+                z = zs[-1] if zs else 0.0
+                slice_radius = (R_EARTH**2 - z**2)**0.5 if abs(z) <= R_EARTH else 0.0
+                # remove and re-add artist
+                try:
+                    earth_slice.remove()
+                except Exception:
+                    pass
+                earth_slice = plt.Circle((0, 0), slice_radius, color='orange', fill=False, linestyle='--', label='Earth Slice at Z')
+                ax_orbita.add_artist(earth_slice)
+
+                # Auto-scale if needed
+                xlim = ax_orbita.get_xlim()
+                ylim = ax_orbita.get_ylim()
+                max_x = max(abs(x) for x in xs) if xs else 0
+                max_y = max(abs(y) for y in ys) if ys else 0
+                max_existing = max(abs(xlim[0]), abs(xlim[1]), abs(ylim[0]), abs(ylim[1]), 1.0)
+                needed = max(max_x, max_y, R_EARTH) * 1.1
+                if needed > max_existing:
+                    new_lim = max(needed, max_existing)
+                    ax_orbita.set_xlim(-new_lim, new_lim)
+                    ax_orbita.set_ylim(-new_lim, new_lim)
+
+                canvas_orbita.draw_idle()
+            except Exception as e:
+                print("Error actualizar_orbita:", e)
+            time.sleep(0.2)
+
+    threading.Thread(target=actualizar_orbita, daemon=True).start()
 
 # ---------------- BOTONES ----------------
 def TEMPClick():
@@ -271,7 +352,7 @@ def ORBITClick():
 
 # ---------------- INTERFAZ ----------------
 window = Tk()
-window.geometry("1600x900")
+window.geometry("1800x1000")
 window.title("INTERFAZ SATELITE")
 window.rowconfigure([0,1,2,3,4,5,6], weight=1)
 window.columnconfigure([0,1,2,3,4,5], weight=1)
