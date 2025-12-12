@@ -137,23 +137,32 @@ def init_grafica_temp():
         canvas_temp = FigureCanvasTkAgg(fig_temp, master=plot_frame)
         canvas_temp.get_tk_widget().pack(fill='both', expand=True)
 
+MAX_POINTS_TEMP = 50  # solo mostramos las últimas 50 lecturas
+
 def plot_temp():
     global grafica_temp
     while grafica_temp:
         with data_lock:
-            xs = list(eje_x)
-            ys = list(temperaturas)
-        if not ys:
+            ys_all = list(temperaturas)
+        if not ys_all:
             time.sleep(0.1)
             continue
+
+        # Ventana deslizante
+        ys = ys_all[-MAX_POINTS_TEMP:]
+        xs = list(range(len(ys)))
+
         ax_temp.clear()
         ax_temp.plot(xs, ys, color='blue', label='TEMPERATURA')
         if len(ys) >= 10:
             media_linea = [sum(ys[-10:])/10.0]*len(ys)
             ax_temp.plot(xs, media_linea, color='green', label='MEDIA 10')
+        ax_temp.set_xlabel('Últimas lecturas')
+        ax_temp.set_ylabel('Temperatura (°C)')
         ax_temp.legend()
         canvas_temp.draw_idle()
-        time.sleep(0.25)
+        time.sleep(0.1)  # actualización más rápida y fluida
+
 
 def plot_hum():
     global grafica_hum
