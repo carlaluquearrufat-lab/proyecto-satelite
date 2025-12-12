@@ -1,0 +1,22 @@
+201	COMANDO	Parar envío de temperatura (S1)
+202	COMANDO	Parar envío de humedad (S2)
+203	COMANDO	Parar envío de distancia (S3)
+204	COMANDO	Reanudar temperatura (R1)
+205	COMANDO	Reanudar humedad (R2)
+206	COMANDO	Reanudar distancia (R3)
+207	COMANDO	Movimiento manual servo (RM:x)
+208	COMANDO	Parar todos los sensores (S)
+209	COMANDO	Reanudar todos los sensores (R)
+210	COMANDO	Iniciar temperatura normal (R1)
+211	COMANDO	Parar temperatura desde interfaz (S1)
+301	ALARMA	Error de lectura de temperatura (1!)
+302	ALARMA	Error de lectura de humedad (2!)
+303	ALARMA	Error combinado TEMP+HUM (1!2)
+304	ALARMA	Mensaje corrupto recibido (trama LoRa corrupta)
+305	ALARMA	Distancia fuera de rango
+306	ALARMA	Eco no recibido (No Echo)
+401	USUARIO	Observación del usuario (texto libre)
+402	USUARIO	Nota importante marcada por el usuario
+403	USUARIO	Usuario reporta posible fallo físico
+404	USUARIO	Usuario reinicia la interfaz
+405	USUARIO	Usuario reinicia el satélite
