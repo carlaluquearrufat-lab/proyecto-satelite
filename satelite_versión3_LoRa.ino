@@ -165,7 +165,7 @@ void loop() {
         
         String mensaje = "#:" + String(numeroEnvio++) +
                          "1:" + String(TEMPERATURA,1) +
-                         "2:" + S#tring(HUMEDAD,1) +
+                         "2:" + String(HUMEDAD,1) +
                          "3:" + String(DISTANCIA,1) +
                          "4:" + String(anguloActual);
         LoRaSerial.println(mensaje);
