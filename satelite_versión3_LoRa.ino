@@ -31,6 +31,7 @@ unsigned long tiempoLedError = 0;
 
 int anguloActual = 90;
 int direccion = 1;
+int contador=0;
 const int incremento = 1;
 
 float DISTANCIA = 0;
@@ -125,10 +126,14 @@ void loop() {
     if (ISNANT && ISNANH) {
         parpadeoLed(ledError, tiempoLedError, ahora);
         tone(BUZZER, 1000);
+        contador= contador +1;
     } else {
         noTone(BUZZER);
+        contador=0;
     }
-
+    if (contador>=3){
+        LoRaSerial.println("1!2");
+    }   
     // -------------------
     // Movimiento suave del servo
     // -------------------
