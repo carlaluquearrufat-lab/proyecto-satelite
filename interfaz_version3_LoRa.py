@@ -85,7 +85,7 @@ def lector_serial():
                     # Lectura de temperatura
                     if '1:' in linea:
                         try:
-                            val = float(linea.split('T:')[-1].split()[0])
+                            val = float(linea.split('1:')[-1].split()[0])
                             temperaturas.append(val)
                             eje_x.append(len(temperaturas)-1)
                         except Exception:
@@ -93,7 +93,7 @@ def lector_serial():
                     # Lectura de humedad
                     if '2:' in linea:
                         try:
-                            val = float(linea.split('H:')[-1].split()[0])
+                            val = float(linea.split('2:')[-1].split()[0])
                             humedades.append(val)
                         except Exception:
                             pass
