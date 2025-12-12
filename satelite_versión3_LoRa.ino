@@ -197,11 +197,7 @@ void parpadeoLed(int ledPin, unsigned long &marca, unsigned long ahora) {
 
 void procesarComando(String cmd) {
     cmd.trim();
-    if (cmd.indexOf("S") >= 0) 
-        leertemperatura = leerhumedad = leerdistancia = false;
-    else if (cmd.indexOf("R") >= 0) 
-        leertemperatura = leerhumedad = leerdistancia = true;
-    else if (cmd.indexOf("S1") >= 0) 
+    if (cmd.indexOf("S1") >= 0) 
         leertemperatura = false;
     else if (cmd.indexOf("S2") >= 0) 
         leerhumedad = false;
