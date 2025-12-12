@@ -73,10 +73,8 @@ void loop() {
             Serial.println("--------------------------");
 
             // ----- Activar alarmas según contenido -----
-            if (linea.indexOf("No Echo") >= 0) 
+            if (linea.indexOf("1!2") >= 0) 
                 activarAlarma(1000);
-            else if (linea.indexOf("Error al leer") >= 0) 
-                activarAlarma(2000);
             else 
                 activarLed();
         }
