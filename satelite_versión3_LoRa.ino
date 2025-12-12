@@ -213,7 +213,8 @@ void procesarComando(String cmd) {
         leerhumedad = true;
     else if (cmd.indexOf("R3") >= 0) 
         leerdistancia = true;
-    else if (cmd.startsWith("DIR:")) {
+    // Radar Manual
+    else if (cmd.startsWith("RM:")) {
         int ang = cmd.substring(4).toInt();
         if (ang < 0) ang = 0;
         if (ang > 180) ang = 180;
