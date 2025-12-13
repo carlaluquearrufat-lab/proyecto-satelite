@@ -24,12 +24,13 @@ bool ledActivo = false;
 unsigned long nextUpdate;
 double real_orbital_period;
 double r;
+const unsigned long INTERVALO_ENVIO = 2000;
+unsigned long tiempoEnvio = 0;
 
 // Forward declarations (prototipos)
 void simulate_orbit(unsigned long millis, double inclination, int ecef);
 void procesarComando(String cmd);
 float medirDistancia();
-void parpadeoLed(int ledPin, unsigned long &marca, unsigned long ahora);
 
 void setup() {
     Serial.begin(9600);
@@ -47,76 +48,84 @@ void setup() {
 
 void loop() {
 
-  unsigned long currentTime = millis();
-    if (currentTime > nextUpdate) {
-        simulate_orbit(currentTime, 0, 0);
-        nextUpdate = currentTime + MILLIS_BETWEEN_UPDATES;
-    }
     // ----- Recepción de datos por LoRa -----
     if (LoRaSerial.available()) {
         String linea = LoRaSerial.readStringUntil('\n');
         linea.trim(); // eliminar \r y espacios
 
         if (linea.length() > 0) {
-            // Mostrar línea completa en el monitor
-            Serial.println(linea);
 
             // ----- Parseo de datos -----
-            float temp = 0, hum = 0, dist = 0;
-            int ang = 0, num = 0;
+            float temp, hum, dist, data;
+            int ang, num;
 
             // Extraer cada valor usando "tag:value"
             int idx;
 
-            if ((idx = linea.indexOf("#:")) >= 0) 
-                num = linea.substring(idx + 2, linea.indexOf(" ", idx)).toInt();
+                if ((idx = linea.indexOf("#:")) >= 0) 
+                    num = linea.substring(idx + 2, linea.indexOf(" ", idx)).toInt();
             
-            if ((idx = linea.indexOf("1:")) >= 0) 
-                temp = linea.substring(idx + 2, linea.indexOf(" ", idx)).toFloat();
+                 if ((idx = linea.indexOf("1:")) >= 0) 
+                    temp = linea.substring(idx + 2, linea.indexOf(" ", idx)).toFloat();
             
-            if ((idx = linea.indexOf("2:")) >= 0) 
-                hum = linea.substring(idx + 2, linea.indexOf(" ", idx)).toFloat();
+                if ((idx = linea.indexOf("2:")) >= 0) 
+                    hum = linea.substring(idx + 2, linea.indexOf(" ", idx)).toFloat();
             
-            if ((idx = linea.indexOf("3:")) >= 0) 
-                dist = linea.substring(
-                    idx + 2, 
-                    linea.indexOf(" ", idx + 2) == -1 ? linea.length() : linea.indexOf(" ", idx + 2)
-                ).toFloat();
+                if ((idx = linea.indexOf("3:")) >= 0) 
+                    dist = linea.substring(
+                        idx + 2, 
+                        linea.indexOf(" ", idx + 2) == -1 ? linea.length() : linea.indexOf(" ", idx + 2)
+                    ).toFloat();
             
-            if ((idx = linea.indexOf("4:")) >= 0) 
-                ang = linea.substring(idx + 2).toInt();
+                 if ((idx = linea.indexOf("4:")) >= 0) 
+                    ang = linea.substring(idx + 2).toInt();
 
-            // Mostrar datos parseados
-            Serial.print("Lectura #: ");
-            Serial.println(num);
-            Serial.print("Temperatura: ");
-            Serial.print(temp);
-            Serial.println(" °C");
-            Serial.print("Humedad: ");
-            Serial.print(hum);
-            Serial.println(" %");
-            Serial.print("Distancia: ");
-            Serial.print(dist);
-            Serial.println(" cm");
-            Serial.print("Ángulo servo: ");
-            Serial.println(ang);
-            Serial.println("--------------------------");
 
-            // ----- Activar alarmas según contenido -----
-            if (linea.indexOf("1!2") >= 0) {
-                activarAlarma(1000);
-                actualizarAlarma();
-            } else {
+                // Mostrar datos parseados
+                Serial.print("Lectura #: ");
+                Serial.println(num);
+                Serial.print("Temperatura: ");
+                Serial.print(temp);
+                Serial.println(" °C");
+                Serial.print("Humedad: ");
+                Serial.print(hum);
+                Serial.println(" %");
+                Serial.print("Distancia: ");
+                Serial.print(dist);
+                Serial.println(" cm");
+                Serial.print("Ángulo servo: ");
+                Serial.println(ang);
+                Serial.print("DATA: ");
+                Serial.print(ang);
+                Serial.print(",");
+                Serial.println(dist);
+                Serial.println("--------------------------");
+
+                // ----- Activar alarmas según contenido -----
+                if (linea.indexOf("1!2") >= 0) {
+                    activarAlarma(1000);
+                    actualizarAlarma();
+                    digitalWrite(pinLed, LOW);
+                } else {
                 parpadeoLed();
             }
+           
         }
         
-    }
+    } else 
+    digitalWrite(pinLed, LOW);
 
     // ----- Envío de comandos al satélite -----
     if (Serial.available()) {
         String cmd = Serial.readStringUntil('\n');
         LoRaSerial.println(cmd);
+    }
+
+    //-------- Simular Orbita ---------
+    unsigned long currentTime = millis();
+    if (currentTime > nextUpdate) {
+        simulate_orbit(currentTime, 0, 0);
+        nextUpdate = currentTime + MILLIS_BETWEEN_UPDATES;
     }
 
 }
@@ -167,4 +176,3 @@ void simulate_orbit(unsigned long millis, double inclination, int ecef) {
     Serial.print(z);
     Serial.println(" m)");
 }
-
