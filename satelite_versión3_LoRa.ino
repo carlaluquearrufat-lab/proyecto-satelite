@@ -126,10 +126,12 @@ void loop() {
     // -------------------
     if (ISNANT && ISNANH) {
         parpadeoLed(ledError, tiempoLedError, ahora);
+        digitalWrite(ledExito, LOW);
         tone(BUZZER, 1000);
         contador= contador +1;
     } else {
         noTone(BUZZER);
+        digitalWrite (ledError, LOW);
         contador=0;
     }
     if (contador>=3){
@@ -161,9 +163,6 @@ void loop() {
     if (ahora - tiempoEnvio >= INTERVALO_ENVIO) {
         tiempoEnvio = ahora;
 
-        String radar = "DATA " + String(anguloActual) + "," + String(DISTANCIA,1);
-        LoRaSerial.println(radar);  // asegura que la interfaz detecte la línea DATA
-        
         String mensaje = "#:" + String(numeroEnvio) +
                          " 1:" + String(TEMPERATURA,1) +
                          " 2:" + String(HUMEDAD,1) +
@@ -171,11 +170,14 @@ void loop() {
                          " 4:" + String(anguloActual);
         LoRaSerial.println(mensaje);
 
+       
         // LED de envío exitoso
+        if (!ISNANT && !ISNANH)
         parpadeoLed(ledExito, tiempoLedExito, ahora);
-
+        
         numeroEnvio++;
     }
+
 }
 
 // ----- FUNCIONES -----
@@ -192,7 +194,7 @@ float medirDistancia() {
 }
 
 void parpadeoLed(int ledPin, unsigned long &marca, unsigned long ahora) {
-    if (ahora - marca >= 500) {
+    if (ahora - marca >= 300) {
         marca = ahora;
         digitalWrite(ledPin, !digitalRead(ledPin));
     }
