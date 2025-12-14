@@ -225,6 +225,7 @@ void parpadeoLed(int ledPin, unsigned long &marca, unsigned long ahora) {
 
 void procesarComando(String cmd) {
     cmd.trim();
+    // Comandos existentes (parar y reanudar lecturas)
     if (cmd.indexOf("S1") >= 0) 
         leertemperatura = false;
     else if (cmd.indexOf("S2") >= 0) 
@@ -246,24 +247,18 @@ void procesarComando(String cmd) {
         servo.write(ang);
         anguloActual = ang;  
     }
-    if (cmd == "IniciarT") {
-    leertemperatura = true;
-    modoMedia = false;
-    }
-
-    // Detener lectura
-    if (cmd == "PararT") {
-        leertemperatura = false;
-        modoMedia = false;
-    }
-
-    // Activar modo media desde la interfaz
+    
+    // Comando para iniciar cálculo de media
     if (cmd == "IniciarT_ARDUINO") {
         leertemperatura = true;
-        modoMedia = true;
+        modoMedia = true;  // Activar el modo de media
+        idxTemp = 0;  // Reiniciar el índice
+        bufferLleno = false;  // Resetear el estado del buffer
+    }
 
-    // Resetear buffer
-    idxTemp = 0;
-    bufferLleno = false;
+    // Comando para parar cálculo de media
+    if (cmd == "PararT_ARDUINO") {
+        leertemperatura = false;
+        modoMedia = false;  // Desactivar el modo de media
     }
 }
