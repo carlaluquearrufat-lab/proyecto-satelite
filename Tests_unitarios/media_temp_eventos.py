@@ -5,6 +5,53 @@ import serial, threading, time, math
 import sys
 import re
 import matplotlib
+import datetime
+
+LOG_FILE = "eventos.log"
+
+def registrar_evento(codigo, tipo, mensaje):
+    fecha = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    linea = f"{fecha}\t{codigo}\t{tipo}\t{mensaje}\n"
+    with open(LOG_FILE, "a") as f:
+        f.write(linea)
+    print("Evento registrado:", linea.strip())
+eventos = {
+    # COMANDOS
+    201: ("COMANDO", "Parar envío de temperatura (S1)"),
+    202: ("COMANDO", "Parar envío de humedad (S2)"),
+    203: ("COMANDO", "Parar envío de distancia (S3)"),
+    204: ("COMANDO", "Reanudar temperatura (R1)"),
+    205: ("COMANDO", "Reanudar humedad (R2)"),
+    206: ("COMANDO", "Reanudar distancia (R3)"),
+    207: ("COMANDO", "Movimiento manual servo (RM:x)"),
+    208: ("COMANDO", "Parar todos los sensores (S)"),
+    209: ("COMANDO", "Reanudar todos los sensores (R)"),
+    210: ("COMANDO", "Iniciar temperatura normal (R1)"),
+    211: ("COMANDO", "Parar temperatura desde interfaz (S1)"),
+
+    # ALARMAS
+    301: ("ALARMA", "Error de lectura de temperatura (1!)"),
+    302: ("ALARMA", "Error de lectura de humedad (2!)"),
+    303: ("ALARMA", "Error combinado TEMP+HUM (1!2)"),
+    304: ("ALARMA", "Mensaje corrupto recibido (trama LoRa corrupta)"),
+    305: ("ALARMA", "Distancia fuera de rango"),
+    306: ("ALARMA", "Eco no recibido (No Echo)"),
+
+    # USUARIO
+    401: ("USUARIO", "Observación del usuario (texto libre)"),
+    402: ("USUARIO", "Nota importante marcada por el usuario"),
+    403: ("USUARIO", "Usuario reporta posible fallo físico"),
+    404: ("USUARIO", "Usuario reinicia la interfaz"),
+    405: ("USUARIO", "Usuario reinicia el satélite")
+}
+
+# Función para registrar un evento usando solo el código
+def registrar_evento_por_codigo(codigo):
+    if codigo in eventos:
+        tipo, mensaje = eventos[codigo]
+        registrar_evento(codigo, tipo, mensaje)
+    else:
+        print("Código de evento no definido:", codigo)
 
 # IMPORTANT: set backend before importing pyplot
 matplotlib.use('TkAgg')
@@ -374,27 +421,45 @@ def TEMPClick():
     init_grafica_temp()
     threading.Thread(target=plot_temp, daemon=True).start()
     if ser: ser.write(b"R1\n")
+    registrar_evento_por_codigo(204)
 
+def MEDIAClick():
+    # Calcula la media en Python
+    if temperaturas:
+        media_python = sum(temperaturas[-10:]) / min(len(temperaturas), 10)
+        print("Media calculada en Python:", media_python)
+        registrar_evento_por_codigo(210)  # puedes usar un código de evento para "media Python"
+    
+    # Solicitar a Arduino que calcule la media
+    if ser:
+        ser.write(b"M\n")  # comando que Arduino debe reconocer
+        print("Solicitud de media enviada al satélite")
+
+        
 def HUMClick():
     global grafica_hum
     grafica_hum = True
     init_grafica_temp()
     threading.Thread(target=plot_hum, daemon=True).start()
     if ser: ser.write(b"R2\n")
+    registrar_evento_por_codigo(205)
 
 def STOPTClick():
     global grafica_temp
     grafica_temp = False
     if ser: ser.write(b"S1\n")
+    registrar_evento_por_codigo(201)
 
 def STOPHClick():
     global grafica_hum
     grafica_hum = False
     if ser: ser.write(b"S2\n")
+    registrar_evento_por_codigo(202)
 
 def RADARClick():
     init_radar()
     if ser: ser.write(b"R3\n")
+    registrar_evento_por_codigo(207)
 
 def RADARMClick():
     radar_manual()
@@ -402,6 +467,7 @@ def RADARMClick():
 
 def ORBITClick():
     init_orbita()
+    registrar_evento_por_codigo(210)
 
 # ---------------- INTERFAZ ----------------
 window = Tk()
