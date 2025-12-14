@@ -57,6 +57,21 @@ def registrar_evento_por_codigo(codigo):
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
+from tkinter import filedialog
+
+def abrir_fichero_comandos():
+    ruta = filedialog.askopenfilename(
+        title="Abrir fichero de comandos",
+        filetypes=(("Archivos de texto","*.txt"), ("Todos los archivos","*.*"))
+    )
+    if ruta:
+        print("Fichero seleccionado:", ruta)
+        # Aquí puedes leerlo o procesarlo según necesites
+        with open(ruta, "r") as f:
+            lineas = f.readlines()
+        for linea in lineas:
+            print("Comando:", linea.strip())
+
 # ---------------- SERIAL ----------------
 device = 'COM7'
 try:
@@ -435,7 +450,7 @@ def MEDIAClick():
         ser.write(b"M\n")  # comando que Arduino debe reconocer
         print("Solicitud de media enviada al satélite")
 
-        
+
 def HUMClick():
     global grafica_hum
     grafica_hum = True
@@ -486,6 +501,8 @@ Button(window,text="STOPHUM", command=STOPHClick, bg='red',fg='white',**botones)
 Button(window,text="RADAR", command=RADARClick, bg='green',fg='white',**botones).grid(row=2,column=3,sticky=N+S+E+W)
 Button(window,text="RADAR MANUAL", command=RADARMClick, bg='green',fg='white',**botones).grid(row=2,column=4,sticky=N+S+E+W)
 Button(window,text="ORBITA", command=ORBITClick, bg='orange',fg='white',**botones).grid(row=2,column=5,sticky=N+S+E+W)
+Button(window, text="MEDIA ARDUINO", command=MEDIAClick, bg='purple', fg='white', **botones).grid(row=3, column=0, sticky=N+S+E+W)
+Button(window, text="ABRIR COMANDOS", command=abrir_fichero_comandos, bg='gray', fg='white', **botones).grid(row=3, column=1, sticky=N+S+E+W)
 
 plot_frame = Frame(window, bd=2, relief='groove')
 plot_frame.grid(row=4,column=0,columnspan=3,sticky=N+S+E+W,padx=5,pady=5)
