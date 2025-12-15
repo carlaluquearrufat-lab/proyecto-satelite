@@ -67,15 +67,33 @@ from tkinter import filedialog
 # ... (SE MANTIENE ABRIR FICHERO IGUAL) ...
 def abrir_fichero_comandos():
     ruta = filedialog.askopenfilename(
-        title="Abrir fichero de comandos",
-        filetypes=(("Archivos de texto","*.txt"), ("Todos los archivos","*.*"))
+        title="Abrir fichero de eventos",
+        filetypes=(
+            ("Fichero de eventos","*.log"),
+            ("Archivos de texto","*.txt"),
+            ("Todos los archivos","*.*")
+        )
     )
-    if ruta:
-        print("Fichero seleccionado:", ruta)
-        with open(ruta, "r") as f:
-            lineas = f.readlines()
-        for linea in lineas:
-            print("Comando:", linea.strip())
+
+    if not ruta:
+        return
+
+    with open(ruta, "r", encoding="utf-8", errors="ignore") as f:
+        contenido = f.read()
+
+    # Ventana nueva para mostrar el contenido
+    win = Toplevel(window)
+    win.title(f"Contenido de {ruta}")
+    win.geometry("900x500")
+
+    text = Text(win, wrap="none")
+    text.insert("1.0", contenido)
+    text.config(state="disabled")  # solo lectura
+    text.pack(fill="both", expand=True)
+
+    scrollbar_y = Scrollbar(win, orient="vertical", command=text.yview)
+    scrollbar_y.pack(side="right", fill="y")
+    text.config(yscrollcommand=scrollbar_y.set)
 
 # ---------------- SERIAL ----------------
 # AVISO: Cambia 'COM7' por tu puerto real si es necesario
@@ -111,6 +129,7 @@ orbitaEncendida = False
 
 # Matplotlib para Tkinter
 canvas_temp = None
+media_arduino = None
 fig_temp = None
 ax_temp = None
 
@@ -180,6 +199,14 @@ def lector_serial():
                                 print("POS recibida incompleta:", linea)
                         except Exception as e:
                             print("Error leyendo POS:", linea, e)
+                    if linea.startswith("MEDIA:"):
+                        try:
+                            valor = float(linea.split(":")[1])
+                            media_arduino = valor
+                            media_label.config(text=f"Media: {valor:.2f} °C")
+                            print("Media recibida:", valor)
+                        except Exception as e:
+                            print("Error al procesar MEDIA:", linea, e)
 
         except Exception as e:
             print("Error lector_serial:", e)
@@ -452,12 +479,8 @@ def TEMPClick():
     registrar_evento_por_codigo(204)
 
 def MEDIAClick():
-    if temperaturas:
-        media_python = sum(temperaturas[-10:]) / min(len(temperaturas), 10)
-        print("Media calculada en Python:", media_python)
-        registrar_evento_por_codigo(210)
     if ser:
-        ser.write(b"M\n")
+        ser.write(b"M\n")  # pedir media al satélite
         print("Solicitud de media enviada al satélite")
 
 def HUMClick():
@@ -507,6 +530,8 @@ Button(window,text="TEMP", command=TEMPClick, bg='blue',fg='white',**botones).gr
 Button(window,text="STOPTEMP", command=STOPTClick, bg='blue',fg='white',**botones).grid(row=5,column=0,sticky=N+S+E+W)
 Button(window,text="HUM", command=HUMClick, bg='red',fg='white',**botones).grid(row=2,column=1,sticky=N+S+E+W)
 Button(window,text="STOPHUM", command=STOPHClick, bg='red',fg='white',**botones).grid(row=5,column=1,sticky=N+S+E+W)
+media_label = Label(window, text="Media: --", font=("Arial",12), bg='white', relief='sunken')
+media_label.grid(row=5, column=2, sticky=N+S+E+W, padx=5, pady=5)
 Button(window,text="RADAR", command=RADARClick, bg='green',fg='white',**botones).grid(row=2,column=3,sticky=N+S+E+W)
 Button(window,text="RADAR MANUAL", command=RADARMClick, bg='green',fg='white',**botones).grid(row=2,column=4,sticky=N+S+E+W)
 Button(window,text="ORBITA 3D", command=ORBITClick, bg='orange',fg='white',**botones).grid(row=2,column=5,sticky=N+S+E+W)
