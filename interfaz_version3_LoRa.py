@@ -148,52 +148,61 @@ y_vals = []
 z_vals = []
 
 # ---------------- LECTOR SERIAL ----------------
+# ---------------- LECTOR SERIAL CORREGIDO ----------------
 def lector_serial():
-    if ser is None: return
+    global media_arduino
+    if ser is None: 
+        return
+
     while True:
         try:
-            if ser.in_waiting > 0:
-                linea = ser.readline().decode('utf-8', errors='ignore').strip()
-                with data_lock:
-                    if '1:' in linea:
-                        try: temperaturas.append(float(linea.split('1:')[1].split()[0]))
-                        except: pass
-                    if ' 2:' in linea:
-                        try: humedades.append(float(linea.split(' 2:')[1].split()[0]))
-                        except: pass
-                    if ' 3:' in linea:
-                        try: distancias.append(float(linea.split(' 3:')[1].split()[0]))
-                        except: pass
-                    if ' 4:' in linea:
-                        try: angulos.append(float(linea.split(' 4:')[1].split()[0]))
-                        except: pass
+            linea = ser.readline().decode('utf-8', errors='ignore').strip()
+            if not linea:
+                continue
 
-                    # -------- POSICION --------
-                    if linea.startswith("POS"):
-                        try:
-                            valores = re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", linea)
-                            if len(valores) >= 3:
-                                x_vals.append(float(valores[0]))
-                                y_vals.append(float(valores[1]))
-                                z_vals.append(float(valores[2]))
-                                
-                                # Aumentamos buffer a 500 para tener traza en el mapa
-                                if len(x_vals) > 500:
-                                    x_vals.pop(0)
-                                    y_vals.pop(0)
-                                    z_vals.pop(0)
-                        except Exception as e:
-                            print("Error leyendo POS:", linea, e)
-                    
-                    if linea.startswith("MEDIA:"):
-                        try:
-                            valor = float(linea.split(":")[1])
-                            media_arduino = valor
-                            media_label.config(text=f"Media: {valor:.2f} °C")
-                        except: pass
+        
+
+            with data_lock:
+                # -------- SENSORES --------
+                if '1:' in linea:
+                    try: temperaturas.append(float(linea.split('1:')[1].split()[0]))
+                    except: pass
+                if ' 2:' in linea:
+                    try: humedades.append(float(linea.split(' 2:')[1].split()[0]))
+                    except: pass
+                if ' 3:' in linea:
+                    try: distancias.append(float(linea.split(' 3:')[1].split()[0]))
+                    except: pass
+                if ' 4:' in linea:
+                    try: angulos.append(float(linea.split(' 4:')[1].split()[0]))
+                    except: pass
+
+                # -------- POSICIÓN --------
+                if linea.startswith("POS"):
+                    valores = re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", linea)
+                    if len(valores) >= 3:
+                        x_vals.append(float(valores[0]))
+                        y_vals.append(float(valores[1]))
+                        z_vals.append(float(valores[2]))
+                        if len(x_vals) > 500:
+                            x_vals.pop(0); y_vals.pop(0); z_vals.pop(0)
+
+                # -------- MEDIA --------
+                if linea.startswith("MEDIA:"):
+                    try:
+                        valor = float(linea.split(":")[1])
+                        media_arduino = valor
+                        medias_arduino.append(valor)
+                        media_label.config(text=f"Media: {valor:.2f} °C")
+                        mostrar_media_popup(valor)
+                    except:
+                        pass
+
         except Exception as e:
             print("Error lector_serial:", e)
+
         time.sleep(0.01)
+
 
 # ---------------- GRAFICAS TEMP/HUM ----------------
 def init_grafica_temp():
@@ -457,6 +466,21 @@ def SET_ALARMAClick():
     except ValueError:
         print("Error: Introduce un número válido para la alarma")
 
+def mostrar_media_popup(valor):
+    win = Toplevel(window)
+    win.title("Media de Temperatura")
+    win.geometry("250x120")
+    win.resizable(False, False)
+
+    Label(win, text="Media Temperatura (ºC)",
+          font=("Arial", 12, "bold")).pack(pady=10)
+
+    Label(win, text=f"{valor:.2f} ºC",
+          font=("Arial", 14),
+          fg="blue").pack(pady=5)
+
+    Button(win, text="Cerrar", command=win.destroy).pack(pady=5)
+
 # ---------------- BOTONES Y GUI ----------------
 def TEMPClick():
     global grafica_temp
@@ -530,11 +554,11 @@ def MAPAClick():
 # ---------------- INTERFAZ PRINCIPAL ----------------
 window = Tk()
 window.geometry("1800x800") # Altura reducida
-window.title("INTERFAZ SATELITE - 3D y MAPA") 
+window.title("INTERFAZ VERSION 4") 
 window.rowconfigure([0,1,2,3,4,5], weight=1)
 window.columnconfigure([0,1,2,3,4,5,6], weight=1)
 
-Label(window, text="VERSION 3D + MAPA", font=("Times New Roman", 20, "bold")).grid(row=0,column=0,columnspan=7,sticky=N+S+E+W)
+Label(window, text="VERSION 4", font=("Times New Roman", 20, "bold")).grid(row=0,column=0,columnspan=7,sticky=N+S+E+W)
 
 botones = {'width':12,'height':2,'font':("Arial",11,"bold"),'relief':'raised','bd':3}
 Button(window,text="TEMP", command=TEMPClick, bg='blue',fg='white',**botones).grid(row=2,column=0,sticky=N+S+E+W)
@@ -579,6 +603,7 @@ entrada_limite.pack(side=LEFT, padx=5)
 entrada_limite.insert(0, "30") # Valor inicial
 
 Button(frame_alarma, text="FIJAR", command=SET_ALARMAClick, bg='red', fg='white', font=("Arial", 9, "bold")).pack(side=LEFT, padx=5)
+
 
 # ---------------- INICIAR HILO SERIAL ----------------
 if ser is not None:
