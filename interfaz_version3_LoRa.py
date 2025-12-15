@@ -5,10 +5,72 @@ import serial, threading, time, math
 import sys
 import re
 import matplotlib
+import datetime
+
+LOG_FILE = "eventos.log"
+
+def registrar_evento(codigo, tipo, mensaje):
+    fecha = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    linea = f"{fecha}\t{codigo}\t{tipo}\t{mensaje}\n"
+    with open(LOG_FILE, "a") as f:
+        f.write(linea)
+    print("Evento registrado:", linea.strip())
+eventos = {
+    # COMANDOS
+    201: ("COMANDO", "Parar envío de temperatura (S1)"),
+    202: ("COMANDO", "Parar envío de humedad (S2)"),
+    203: ("COMANDO", "Parar envío de distancia (S3)"),
+    204: ("COMANDO", "Reanudar temperatura (R1)"),
+    205: ("COMANDO", "Reanudar humedad (R2)"),
+    206: ("COMANDO", "Reanudar distancia (R3)"),
+    207: ("COMANDO", "Movimiento manual servo (RM:x)"),
+    208: ("COMANDO", "Parar todos los sensores (S)"),
+    209: ("COMANDO", "Reanudar todos los sensores (R)"),
+    210: ("COMANDO", "Iniciar temperatura normal (R1)"),
+    211: ("COMANDO", "Parar temperatura desde interfaz (S1)"),
+
+    # ALARMAS
+    301: ("ALARMA", "Error de lectura de temperatura (1!)"),
+    302: ("ALARMA", "Error de lectura de humedad (2!)"),
+    303: ("ALARMA", "Error combinado TEMP+HUM (1!2)"),
+    304: ("ALARMA", "Mensaje corrupto recibido (trama LoRa corrupta)"),
+    305: ("ALARMA", "Distancia fuera de rango"),
+    306: ("ALARMA", "Eco no recibido (No Echo)"),
+
+    # USUARIO
+    401: ("USUARIO", "Observación del usuario (texto libre)"),
+    402: ("USUARIO", "Nota importante marcada por el usuario"),
+    403: ("USUARIO", "Usuario reporta posible fallo físico"),
+    404: ("USUARIO", "Usuario reinicia la interfaz"),
+    405: ("USUARIO", "Usuario reinicia el satélite")
+}
+
+# Función para registrar un evento usando solo el código
+def registrar_evento_por_codigo(codigo):
+    if codigo in eventos:
+        tipo, mensaje = eventos[codigo]
+        registrar_evento(codigo, tipo, mensaje)
+    else:
+        print("Código de evento no definido:", codigo)
 
 # IMPORTANT: set backend before importing pyplot
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
+
+from tkinter import filedialog
+
+def abrir_fichero_comandos():
+    ruta = filedialog.askopenfilename(
+        title="Abrir fichero de comandos",
+        filetypes=(("Archivos de texto","*.txt"), ("Todos los archivos","*.*"))
+    )
+    if ruta:
+        print("Fichero seleccionado:", ruta)
+        # Aquí puedes leerlo o procesarlo según necesites
+        with open(ruta, "r") as f:
+            lineas = f.readlines()
+        for linea in lineas:
+            print("Comando:", linea.strip())
 
 # ---------------- SERIAL ----------------
 device = 'COM7'
@@ -27,6 +89,7 @@ humedades = []
 distancias = []
 angulos = []
 eje_x = []
+medias_arduino = []
 
 
 # Máxima cantidad de puntos a mostrar en las gráficas en tiempo real
@@ -55,77 +118,91 @@ ax_orbita = None
 
 # Variables para la órbita
 # Regex robusta: acepta notación científica, espacios variables, opcional 'm'
-regex = re.compile(
-    r"Position:\s*\(X:\s*([-\d.eE]+)\s*m?,\s*Y:\s*([-\d.eE]+)\s*m?,\s*Z:\s*([-\d.eE]+)\s*m?\)"
-)
+
 R_EARTH = 6371000  # Radio de la Tierra en metros
 x_vals = []
 y_vals = []
 z_vals = []
-
-# ---------------- LECTOR SERIAL ----------------
+# ---------------- LECTOR SERIAL CORREGIDO ----------------
 def lector_serial():
     if ser is None:
         return
     while True:
         try:
             if ser.in_waiting > 0:
-                linea_raw = ser.readline()
-                if not linea_raw:
-                    continue
-                try:
-                    linea = linea_raw.decode('utf-8', errors='ignore').strip()
-                except:
-                    linea = linea_raw.decode('latin1', errors='ignore').strip()
-
-                # Debug minimal: print raw position lines to help see format (comment if noisy)
-                # print("RAW serial:", repr(linea))
+                linea = ser.readline().decode('utf-8', errors='ignore').strip()
 
                 with data_lock:
-                    # Lectura de temperatura
+                    # -------- TEMP --------
+                    
                     if '1:' in linea:
                         try:
-                            val = float(linea.split('1:')[-1].split()[0])
-                            temperaturas.append(val)
-                            eje_x.append(len(temperaturas)-1)
-                        except Exception:
-                            pass
-                    # Lectura de humedad
-                    if '2:' in linea:
+                            # Busca '1:' sin espacio delante
+                            temperaturas.append(float(linea.split('1:')[1].split()[0]))
+                        except: pass
+
+                    # -------- HUM --------
+                    if ' 2:' in linea:
                         try:
-                            val = float(linea.split('2:')[-1].split()[0])
-                            humedades.append(val)
-                        except Exception:
-                            pass
-                    # Lectura de datos radar (Arduino envía DATA angulo,distancia)
-                    if linea.startswith('DATA'):
+                            humedades.append(float(linea.split(' 2:')[1].split()[0]))
+                        except: pass
+                    # -------- DIST --------
+                    if ' 3:' in linea:
                         try:
-                            _, valores = linea.split()
-                            ang, dist = map(float, valores.split(','))
-                            angulos.append(ang)
-                            distancias.append(dist)
-                        except Exception:
-                            pass
-                    # Lectura de posición de órbita: use regex robusta
-                    # This replaces the previous fragile manual split approach
-                    if 'Position' in linea:
+                            distancias.append(float(linea.split(' 3:')[1].split()[0]))
+                        except: pass
+
+                    # -------- ANGULO --------
+                    if ' 4:' in linea:
                         try:
-                            m = regex.search(linea)
-                            if m:
-                                x = float(m.group(1))
-                                y = float(m.group(2))
-                                z = float(m.group(3))
+                            angulos.append(float(linea.split(' 4:')[1].split()[0]))
+                        except: pass
+
+                    # -------- LECTURA ORBITA (CORREGIDO) --------
+                    if linea.startswith("POS"):
+                        try:
+                            # Busca todos los numeros (enteros, floats o notacion cientifica) en la linea
+                            valores = re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", linea)
+                            
+                            # Necesitamos al menos 3 numeros (X, Y, Z). 
+                            # Si 'POS' no tiene numeros pegados, los 3 primeros serán las coordenadas.
+                            if len(valores) >= 3:
+                                x = float(valores[0])
+                                y = float(valores[1])
+                                z = float(valores[2])
+
                                 x_vals.append(x)
                                 y_vals.append(y)
                                 z_vals.append(z)
+
+                                # Mantener buffer limitado
+                                if len(x_vals) > 200:
+                                    x_vals.pop(0)
+                                    y_vals.pop(0)
+                                    z_vals.pop(0)
                             else:
-                                # If regex doesn't match, optional: try a fallback manual parse (silently ignore)
-                                pass
-                        except Exception:
-                            pass
+                                print("POS recibida incompleta:", linea)
+
+                        except Exception as e:
+                            print("Error leyendo POS:", linea, e)
+
         except Exception as e:
             print("Error lector_serial:", e)
+
         time.sleep(0.01)
+
+# ====== (TODO TU IMPORT ORIGINAL SIN CAMBIOS) ======
+from tkinter import *
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import serial, threading, time, math
+import sys
+import re
+import matplotlib
+import datetime
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
+from tkinter import filedialog
 
 # ---------------- FUNCIONES GRAFICAS ----------------
 def init_grafica_temp():
@@ -366,6 +443,20 @@ def TEMPClick():
     init_grafica_temp()
     threading.Thread(target=plot_temp, daemon=True).start()
     if ser: ser.write(b"R1\n")
+    registrar_evento_por_codigo(204)
+
+def MEDIAClick():
+    # Calcula la media en Python
+    if temperaturas:
+        media_python = sum(temperaturas[-10:]) / min(len(temperaturas), 10)
+        print("Media calculada en Python:", media_python)
+        registrar_evento_por_codigo(210)  # puedes usar un código de evento para "media Python"
+    
+    # Solicitar a Arduino que calcule la media
+    if ser:
+        ser.write(b"M\n")  # comando que Arduino debe reconocer
+        print("Solicitud de media enviada al satélite")
+
 
 def HUMClick():
     global grafica_hum
@@ -373,20 +464,24 @@ def HUMClick():
     init_grafica_temp()
     threading.Thread(target=plot_hum, daemon=True).start()
     if ser: ser.write(b"R2\n")
+    registrar_evento_por_codigo(205)
 
 def STOPTClick():
     global grafica_temp
     grafica_temp = False
     if ser: ser.write(b"S1\n")
+    registrar_evento_por_codigo(201)
 
 def STOPHClick():
     global grafica_hum
     grafica_hum = False
     if ser: ser.write(b"S2\n")
+    registrar_evento_por_codigo(202)
 
 def RADARClick():
     init_radar()
     if ser: ser.write(b"R3\n")
+    registrar_evento_por_codigo(207)
 
 def RADARMClick():
     radar_manual()
@@ -394,6 +489,7 @@ def RADARMClick():
 
 def ORBITClick():
     init_orbita()
+    registrar_evento_por_codigo(210)
 
 # ---------------- INTERFAZ ----------------
 window = Tk()
@@ -412,6 +508,8 @@ Button(window,text="STOPHUM", command=STOPHClick, bg='red',fg='white',**botones)
 Button(window,text="RADAR", command=RADARClick, bg='green',fg='white',**botones).grid(row=2,column=3,sticky=N+S+E+W)
 Button(window,text="RADAR MANUAL", command=RADARMClick, bg='green',fg='white',**botones).grid(row=2,column=4,sticky=N+S+E+W)
 Button(window,text="ORBITA", command=ORBITClick, bg='orange',fg='white',**botones).grid(row=2,column=5,sticky=N+S+E+W)
+Button(window, text="MEDIA ARDUINO", command=MEDIAClick, bg='purple', fg='white', **botones).grid(row=3, column=0, sticky=N+S+E+W)
+Button(window, text="ABRIR COMANDOS", command=abrir_fichero_comandos, bg='gray', fg='white', **botones).grid(row=3, column=1, sticky=N+S+E+W)
 
 plot_frame = Frame(window, bd=2, relief='groove')
 plot_frame.grid(row=4,column=0,columnspan=3,sticky=N+S+E+W,padx=5,pady=5)
