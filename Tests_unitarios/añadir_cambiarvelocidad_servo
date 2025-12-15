@@ -1,0 +1,54 @@
+Cambio de velocidad: 
+Satelite: 
+const unsigned long INTERVALO_SERVO = 20; --> cambiarlo por unsigned long INTERVALO_SERVO = 20;
+
+En procesarComando() añade:
+
+else if (cmd.startsWith("VS:")) {
+    unsigned long nuevoIntervalo = cmd.substring(3).toInt();
+
+    // límites de seguridad
+    if (nuevoIntervalo < 5) nuevoIntervalo = 5;
+    if (nuevoIntervalo > 200) nuevoIntervalo = 200;
+
+    INTERVALO_SERVO = nuevoIntervalo;
+}
+Cambio en python: 
+añadir esto en funciones: 
+def enviar_velocidad_servo(valor):
+    intervalo = int(valor)
+    if ser:
+        comando = f"VS:{intervalo}\n"
+        ser.write(comando.encode())
+        print("Velocidad servo enviada:", comando.strip())
+
+
+def ventana_velocidad_servo():
+    win = Toplevel(window)
+    win.title("Velocidad Servo")
+
+    Label(win, text="Velocidad del Servo", font=("Arial",14)).pack(pady=10)
+
+    slider = Scale(
+        win,
+        from_=5,
+        to=200,
+        orient="horizontal",
+        length=300,
+        resolution=5,
+        command=enviar_velocidad_servo
+    )
+    slider.set(20)
+    slider.pack(pady=20)
+
+añadir junto a los demas botones: 
+Button(
+    window,
+    text="VEL SERVO",
+    command=ventana_velocidad_servo,
+    bg='cyan',
+    fg='black',
+    **botones
+).grid(row=3, column=2, sticky=N+S+E+W)
+
+
