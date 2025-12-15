@@ -1,20 +1,63 @@
-Cambio de velocidad: 
+Cambio de velocidad + radar manual+radar automatico
 Satelite: 
 const unsigned long INTERVALO_SERVO = 20; --> cambiarlo por unsigned long INTERVALO_SERVO = 20;
 
+añadir debajo de mis variables globales: 
+enum ModoRadar { RADAR_AUTO, RADAR_MANUAL };
+ModoRadar modoRadar = RADAR_AUTO;
+
+reemplazar este bloque: if (!radarmanual && leerdistancia && ahora - tiempoServo >= INTERVALO_SERVO) {
+    tiempoServo = ahora;
+    anguloActual += incremento * direccion;
+    if (anguloActual >= 180) direccion = -1;
+    else if (anguloActual <= 0) direccion = 1;
+    servo.write(anguloActual);
+}
+
+por este bloque: 
+if (modoRadar == RADAR_AUTO &&
+    leerdistancia &&
+    ahora - tiempoServo >= INTERVALO_SERVO) {
+
+    tiempoServo = ahora;
+    anguloActual += incremento * direccion;
+
+    if (anguloActual >= 180) direccion = -1;
+    else if (anguloActual <= 0) direccion = 1;
+
+    servo.write(anguloActual);
+}
+
+
 En procesarComando() añade:
 
+else if (cmd.startsWith("RM:")) {
+    modoRadar = RADAR_MANUAL;
+
+    int ang = cmd.substring(3).toInt();
+    ang = constrain(ang, 0, 180);
+
+    anguloActual = ang;
+    servo.write(anguloActual);
+}
+
+// --- Volver a radar automático ---
+else if (cmd == "RA") {
+    modoRadar = RADAR_AUTO;
+}
+
+// --- Cambiar velocidad del servo ---
 else if (cmd.startsWith("VS:")) {
     unsigned long nuevoIntervalo = cmd.substring(3).toInt();
-
-    // límites de seguridad
-    if (nuevoIntervalo < 5) nuevoIntervalo = 5;
-    if (nuevoIntervalo > 200) nuevoIntervalo = 200;
-
-    INTERVALO_SERVO = nuevoIntervalo;
+    INTERVALO_SERVO = constrain(nuevoIntervalo, 5, 200);
 }
+
+
+
+
 Cambio en python: 
 añadir esto en funciones: 
+
 def enviar_velocidad_servo(valor):
     intervalo = int(valor)
     if ser:
@@ -41,7 +84,13 @@ def ventana_velocidad_servo():
     slider.set(20)
     slider.pack(pady=20)
 
-añadir junto a los demas botones: 
+
+def radar_automatico():
+    if ser:
+        ser.write(b"RA\n")
+        print("Radar automático activado")
+
+en la zona de los botones: 
 Button(
     window,
     text="VEL SERVO",
@@ -50,5 +99,18 @@ Button(
     fg='black',
     **botones
 ).grid(row=3, column=2, sticky=N+S+E+W)
+
+Button(
+    window,
+    text="RADAR AUTO",
+    command=radar_automatico,
+    bg='green',
+    fg='white',
+    **botones
+).grid(row=3, column=3, sticky=N+S+E+W)
+
+
+
+
 
 
