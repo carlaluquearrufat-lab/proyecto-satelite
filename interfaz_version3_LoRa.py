@@ -7,8 +7,14 @@ import re
 import matplotlib
 import datetime
 
+# --- NUEVOS IMPORTS PARA 3D ---
+from mpl_toolkits.mplot3d import Axes3D  # Necesario para la proyección 3D
+import numpy as np  # Necesario para generar la esfera de la Tierra
+# ------------------------------
+
 LOG_FILE = "eventos.log"
 
+# ... (SE MANTIENE EL CÓDIGO DE EVENTOS Y LOGS IGUAL) ...
 def registrar_evento(codigo, tipo, mensaje):
     fecha = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     linea = f"{fecha}\t{codigo}\t{tipo}\t{mensaje}\n"
@@ -45,7 +51,6 @@ eventos = {
     405: ("USUARIO", "Usuario reinicia el satélite")
 }
 
-# Función para registrar un evento usando solo el código
 def registrar_evento_por_codigo(codigo):
     if codigo in eventos:
         tipo, mensaje = eventos[codigo]
@@ -59,6 +64,7 @@ import matplotlib.pyplot as plt
 
 from tkinter import filedialog
 
+# ... (SE MANTIENE ABRIR FICHERO IGUAL) ...
 def abrir_fichero_comandos():
     ruta = filedialog.askopenfilename(
         title="Abrir fichero de comandos",
@@ -66,14 +72,14 @@ def abrir_fichero_comandos():
     )
     if ruta:
         print("Fichero seleccionado:", ruta)
-        # Aquí puedes leerlo o procesarlo según necesites
         with open(ruta, "r") as f:
             lineas = f.readlines()
         for linea in lineas:
             print("Comando:", linea.strip())
 
 # ---------------- SERIAL ----------------
-device = 'COM7'
+# AVISO: Cambia 'COM7' por tu puerto real si es necesario
+device = 'COM7' 
 try:
     ser = serial.Serial(device, 9600, timeout=1)
     print("Serial abierto en", device)
@@ -91,10 +97,10 @@ angulos = []
 eje_x = []
 medias_arduino = []
 
-
 # Máxima cantidad de puntos a mostrar en las gráficas en tiempo real
-MAX_POINTS_RADAR = 5    # número de lecturas visibles en el radar (ventana deslizante)
-MAX_POINTS_ORBIT = 10   # número de puntos visibles en la órbita
+MAX_POINTS_RADAR = 5
+# SUGERENCIA: Aumentar este valor para ver una estela de órbita más larga en 3D
+MAX_POINTS_ORBIT = 50  # Cambiado de 10 a 50 para mejor visualización 3D
 
 # Flags de graficas
 grafica_temp = False
@@ -117,13 +123,12 @@ fig_orbita = None
 ax_orbita = None
 
 # Variables para la órbita
-# Regex robusta: acepta notación científica, espacios variables, opcional 'm'
-
 R_EARTH = 6371000  # Radio de la Tierra en metros
 x_vals = []
 y_vals = []
 z_vals = []
-# ---------------- LECTOR SERIAL CORREGIDO ----------------
+
+# ---------------- LECTOR SERIAL (IGUAL QUE EL ORIGINAL) ----------------
 def lector_serial():
     if ser is None:
         return
@@ -134,13 +139,10 @@ def lector_serial():
 
                 with data_lock:
                     # -------- TEMP --------
-                    
                     if '1:' in linea:
                         try:
-                            # Busca '1:' sin espacio delante
                             temperaturas.append(float(linea.split('1:')[1].split()[0]))
                         except: pass
-
                     # -------- HUM --------
                     if ' 2:' in linea:
                         try:
@@ -151,21 +153,16 @@ def lector_serial():
                         try:
                             distancias.append(float(linea.split(' 3:')[1].split()[0]))
                         except: pass
-
                     # -------- ANGULO --------
                     if ' 4:' in linea:
                         try:
                             angulos.append(float(linea.split(' 4:')[1].split()[0]))
                         except: pass
 
-                    # -------- LECTURA ORBITA (CORREGIDO) --------
+                    # -------- LECTURA ORBITA --------
                     if linea.startswith("POS"):
                         try:
-                            # Busca todos los numeros (enteros, floats o notacion cientifica) en la linea
                             valores = re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", linea)
-                            
-                            # Necesitamos al menos 3 numeros (X, Y, Z). 
-                            # Si 'POS' no tiene numeros pegados, los 3 primeros serán las coordenadas.
                             if len(valores) >= 3:
                                 x = float(valores[0])
                                 y = float(valores[1])
@@ -175,14 +172,12 @@ def lector_serial():
                                 y_vals.append(y)
                                 z_vals.append(z)
 
-                                # Mantener buffer limitado
                                 if len(x_vals) > 200:
                                     x_vals.pop(0)
                                     y_vals.pop(0)
                                     z_vals.pop(0)
                             else:
                                 print("POS recibida incompleta:", linea)
-
                         except Exception as e:
                             print("Error leyendo POS:", linea, e)
 
@@ -191,20 +186,7 @@ def lector_serial():
 
         time.sleep(0.01)
 
-# ====== (TODO TU IMPORT ORIGINAL SIN CAMBIOS) ======
-from tkinter import *
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import serial, threading, time, math
-import sys
-import re
-import matplotlib
-import datetime
-matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
-from tkinter import filedialog
-
-# ---------------- FUNCIONES GRAFICAS ----------------
+# ---------------- FUNCIONES GRAFICAS TEMP/HUM (IGUAL QUE EL ORIGINAL) ----------------
 def init_grafica_temp():
     global canvas_temp, fig_temp, ax_temp
     if canvas_temp is None:
@@ -214,7 +196,6 @@ def init_grafica_temp():
         canvas_temp = FigureCanvasTkAgg(fig_temp, master=plot_frame)
         canvas_temp.get_tk_widget().pack(fill='both', expand=True)
 
-# Variables globales para las líneas
 linea_temp = None
 linea_media = None
 linea_hum = None
@@ -228,7 +209,6 @@ def plot_temp():
         ys = temperaturas[-MAX_POINTS_TEMP:]
         xs = list(range(len(ys)))
 
-    # Inicializar líneas si no existen
     if linea_temp is None:
         linea_temp, = ax_temp.plot(xs, ys, color='blue', label='TEMPERATURA')
         linea_media, = ax_temp.plot(xs, ys, color='green', label='MEDIA 10')
@@ -248,13 +228,11 @@ def plot_temp():
         ys = ys_all[-MAX_POINTS_TEMP:]
         xs = list(range(len(ys)))
 
-        # Actualizar líneas sin limpiar el eje
         linea_temp.set_data(xs, ys)
         if len(ys) >= 10:
             media = [sum(ys[-10:])/10.0]*len(ys)
             linea_media.set_data(xs, media)
 
-        # Ajustar límites dinámicamente si quieres
         ymin = min(ys) - 1
         ymax = max(ys) + 1
         ax_temp.set_ylim(ymin, ymax)
@@ -293,7 +271,7 @@ def plot_hum():
         time.sleep(0.25)
 
 
-# ---------------- RADAR ----------------
+# ---------------- RADAR (IGUAL QUE EL ORIGINAL) ----------------
 def init_radar():
     global canvas_radar, fig_radar, ax_radar, radarEncendido
     if radarEncendido:
@@ -307,7 +285,6 @@ def init_radar():
     canvas_radar = FigureCanvasTkAgg(fig_radar, master=radar_frame)
     canvas_radar.get_tk_widget().pack(fill='both', expand=True)
     threading.Thread(target=actualizar_radar, daemon=True).start()
-    
 
 def actualizar_radar():
     global radarEncendido
@@ -316,7 +293,6 @@ def actualizar_radar():
             with data_lock:
                 angs_all = list(angulos)
                 dists_all = list(distancias)
-            # Take only the last MAX_POINTS_RADAR points for plotting (sliding window)
             if not angs_all or not dists_all or len(angs_all) != len(dists_all):
                 time.sleep(0.1)
                 continue
@@ -335,7 +311,7 @@ def actualizar_radar():
             print("Error radar:", e)
         time.sleep(0.2)
 
-# ---------------- RADAR MANUAL ----------------
+# ---------------- RADAR MANUAL (IGUAL QUE EL ORIGINAL) ----------------
 def radar_manual():
     win = Toplevel(window)
     win.title("Control Motor")
@@ -352,7 +328,9 @@ def enviar_direccion(val):
         ser.write(f"RM:{angulo}\n".encode())
         print("Enviado:", angulo)
 
-# ---------------- ORBITA (INTEGRADA EN LA INTERFAZ) ----------------
+# =============================================================================
+# ---------------- ORBITA 3D (MODIFICADA) ----------------
+# =============================================================================
 def init_orbita():
     global canvas_orbita, fig_orbita, ax_orbita, orbitaEncendida
 
@@ -360,83 +338,111 @@ def init_orbita():
         return
     orbitaEncendida = True
 
-    # Create figure embedded in orbit_frame
+    # Crear figura
     fig_orbita = Figure(figsize=(6,6), dpi=100)
-    ax_orbita = fig_orbita.add_subplot(111)
-    ax_orbita.set_aspect('equal', 'box')
-    ax_orbita.set_xlabel('X (metros)')
-    ax_orbita.set_ylabel('Y (metros)')
-    ax_orbita.set_title('Órbita Ecuatorial del Satélite (Vista desde el Polo Norte)')
-    ax_orbita.grid(True)
+    # IMPORTANTE: Usar projection='3d'
+    ax_orbita = fig_orbita.add_subplot(111, projection='3d')
+    
+    # Configuración de los ejes 3D
+    ax_orbita.set_xlabel('X (m)')
+    ax_orbita.set_ylabel('Y (m)')
+    ax_orbita.set_zlabel('Z (m)')
+    ax_orbita.set_title('Órbita Satelital 3D')
+    
+    # --- DIBUJAR LA TIERRA EN 3D ---
+    # Generar datos para una esfera
+    u = np.linspace(0, 2 * np.pi, 30) # Longitud
+    v = np.linspace(0, np.pi, 30)     # Latitud
+    x_earth = R_EARTH * np.outer(np.cos(u), np.sin(v))
+    y_earth = R_EARTH * np.outer(np.sin(u), np.sin(v))
+    z_earth = R_EARTH * np.outer(np.ones(np.size(u)), np.cos(v))
 
-    # Ensure initial limits include Earth
-    ax_orbita.set_xlim(-7e6, 7e6)
-    ax_orbita.set_ylim(-7e6, 7e6)
+    # Dibujar la superficie de la Tierra como malla de alambre (wireframe) naranja transparente
+    ax_orbita.plot_wireframe(x_earth, y_earth, z_earth, color='orange', alpha=0.3, rstride=2, cstride=2)
 
-    # Initial artists
-    orbit_plot, = ax_orbita.plot([], [], 'bo-', label='Satellite Orbit', markersize=2)
-    last_point_plot = ax_orbita.scatter([], [], color='red', s=50, label='Last Point')
-    earth_circle = plt.Circle((0, 0), R_EARTH, color='orange', fill=False, label='Earth Surface')
-    ax_orbita.add_artist(earth_circle)
-    earth_slice = plt.Circle((0, 0), 0, color='orange', fill=False, linestyle='--', label='Earth Slice at Z')
-    ax_orbita.add_artist(earth_slice)
+    # Dibujar Ecuador (Círculo Verde en Z=0)
+    theta = np.linspace(0, 2*np.pi, 100)
+    ax_orbita.plot(R_EARTH*np.cos(theta), R_EARTH*np.sin(theta), np.zeros_like(theta), color='green', linestyle='--', linewidth=1.5, label='Ecuador')
+
+    # Dibujar Meridiano de Greenwich aproximado (Círculo Amarillo en el plano X-Z, asumiendo Y=0 como cruce)
+    phi = np.linspace(0, 2*np.pi, 100)
+    ax_orbita.plot(R_EARTH*np.sin(phi), np.zeros_like(phi), R_EARTH*np.cos(phi), color='yellow', linestyle='-', linewidth=1.5, label='Meridiano')
+
+    # Configurar límites iniciales para que se vea la Tierra completa
+    limit = R_EARTH * 1.5
+    ax_orbita.set_xlim(-limit, limit)
+    ax_orbita.set_ylim(-limit, limit)
+    ax_orbita.set_zlim(-limit, limit)
+    
+    # Intentar hacer que los ejes sean iguales para que la esfera parezca redonda
+    try:
+        ax_orbita.set_box_aspect([1,1,1])
+    except: pass # Versiones antiguas de matplotlib podrían no soportarlo
+
+    # Inicializar las gráficas vacías para la órbita y el último punto en 3D
+    # Nota: En 3D, plot toma 3 argumentos iniciales (x, y, z)
+    orbit_plot, = ax_orbita.plot([], [], [], 'b-', linewidth=2, label='Órbita Satélite')
+    last_point_plot = ax_orbita.scatter([], [], [], color='red', s=50, label='Última Posición')
+    
     ax_orbita.legend()
+
+    # Vista inicial de la cámara (elevación, azimut)
+    ax_orbita.view_init(elev=30, azim=45)
 
     canvas_orbita = FigureCanvasTkAgg(fig_orbita, master=orbit_frame)
     canvas_orbita.get_tk_widget().pack(fill='both', expand=True)
 
-    # Thread that updates the orbit plot using x_vals,y_vals,z_vals
+    # --- HILO DE ACTUALIZACIÓN 3D ---
     def actualizar_orbita():
-        nonlocal earth_slice, orbit_plot, last_point_plot
+        nonlocal orbit_plot, last_point_plot
         while orbitaEncendida:
             try:
                 with data_lock:
                     xs_all = list(x_vals)
                     ys_all = list(y_vals)
                     zs_all = list(z_vals)
-                # Use a sliding window for plotting to avoid too many points
-                if not xs_all or not ys_all:
+
+                if not xs_all or not ys_all or not zs_all:
                     time.sleep(0.15)
                     continue
+                
+                # Usar ventana deslizante para los puntos
                 xs = xs_all[-MAX_POINTS_ORBIT:]
                 ys = ys_all[-MAX_POINTS_ORBIT:]
                 zs = zs_all[-MAX_POINTS_ORBIT:]
 
-                # Update orbit line and last point
+                # ACTUALIZAR LA LÍNEA DE ÓRBITA EN 3D
+                # Se deben establecer los datos X e Y primero, y luego los Z
                 orbit_plot.set_data(xs, ys)
-                last_point_plot.set_offsets([[xs[-1], ys[-1]]])
+                orbit_plot.set_3d_properties(zs)
 
-                # Update earth slice based on last z
-                z = zs[-1] if zs else 0.0
-                slice_radius = (R_EARTH**2 - z**2)**0.5 if abs(z) <= R_EARTH else 0.0
-                # remove and re-add artist
-                try:
-                    earth_slice.remove()
-                except Exception:
-                    pass
-                earth_slice = plt.Circle((0, 0), slice_radius, color='orange', fill=False, linestyle='--', label='Earth Slice at Z')
-                ax_orbita.add_artist(earth_slice)
+                # ACTUALIZAR EL ÚLTIMO PUNTO (SCATTER) EN 3D
+                # Scatter 3D usa _offsets3d internamente
+                last_point_plot._offsets3d = ([xs[-1]], [ys[-1]], [zs[-1]])
 
-                # Auto-scale if needed
-                xlim = ax_orbita.get_xlim()
-                ylim = ax_orbita.get_ylim()
-                max_x = max(abs(x) for x in xs) if xs else 0
-                max_y = max(abs(y) for y in ys) if ys else 0
-                max_existing = max(abs(xlim[0]), abs(xlim[1]), abs(ylim[0]), abs(ylim[1]), 1.0)
-                needed = max(max_x, max_y, R_EARTH) * 1.1
-                if needed > max_existing:
-                    new_lim = max(needed, max_existing)
-                    ax_orbita.set_xlim(-new_lim, new_lim)
-                    ax_orbita.set_ylim(-new_lim, new_lim)
+                # Auto-escalado dinámico de los ejes 3D si el satélite se aleja mucho
+                max_val = R_EARTH
+                if xs: max_val = max(max_val, np.max(np.abs(xs)))
+                if ys: max_val = max(max_val, np.max(np.abs(ys)))
+                if zs: max_val = max(max_val, np.max(np.abs(zs)))
+
+                current_limit = ax_orbita.get_xlim()[1]
+                if max_val * 1.1 > current_limit:
+                     new_limit = max_val * 1.2
+                     ax_orbita.set_xlim(-new_limit, new_limit)
+                     ax_orbita.set_ylim(-new_limit, new_limit)
+                     ax_orbita.set_zlim(-new_limit, new_limit)
 
                 canvas_orbita.draw_idle()
             except Exception as e:
-                print("Error actualizar_orbita:", e)
+                print("Error actualizar_orbita 3D:", e)
             time.sleep(0.2)
 
     threading.Thread(target=actualizar_orbita, daemon=True).start()
+# =============================================================================
 
-# ---------------- BOTONES ----------------
+
+# ---------------- BOTONES Y GUI (IGUAL QUE EL ORIGINAL) ----------------
 def TEMPClick():
     global grafica_temp
     grafica_temp = True
@@ -446,17 +452,13 @@ def TEMPClick():
     registrar_evento_por_codigo(204)
 
 def MEDIAClick():
-    # Calcula la media en Python
     if temperaturas:
         media_python = sum(temperaturas[-10:]) / min(len(temperaturas), 10)
         print("Media calculada en Python:", media_python)
-        registrar_evento_por_codigo(210)  # puedes usar un código de evento para "media Python"
-    
-    # Solicitar a Arduino que calcule la media
+        registrar_evento_por_codigo(210)
     if ser:
-        ser.write(b"M\n")  # comando que Arduino debe reconocer
+        ser.write(b"M\n")
         print("Solicitud de media enviada al satélite")
-
 
 def HUMClick():
     global grafica_hum
@@ -491,14 +493,14 @@ def ORBITClick():
     init_orbita()
     registrar_evento_por_codigo(210)
 
-# ---------------- INTERFAZ ----------------
+# ---------------- INTERFAZ PRINCIPAL ----------------
 window = Tk()
 window.geometry("1800x1000")
-window.title("INTERFAZ SATELITE")
+window.title("INTERFAZ SATELITE 3D") # Título actualizado
 window.rowconfigure([0,1,2,3,4,5,6], weight=1)
 window.columnconfigure([0,1,2,3,4,5], weight=1)
 
-Label(window, text="VERSION 2", font=("Times New Roman", 20, "bold")).grid(row=0,column=0,columnspan=6,sticky=N+S+E+W)
+Label(window, text="VERSION 3D", font=("Times New Roman", 20, "bold")).grid(row=0,column=0,columnspan=6,sticky=N+S+E+W)
 
 botones = {'width':12,'height':2,'font':("Arial",11,"bold"),'relief':'raised','bd':3}
 Button(window,text="TEMP", command=TEMPClick, bg='blue',fg='white',**botones).grid(row=2,column=0,sticky=N+S+E+W)
@@ -507,7 +509,7 @@ Button(window,text="HUM", command=HUMClick, bg='red',fg='white',**botones).grid(
 Button(window,text="STOPHUM", command=STOPHClick, bg='red',fg='white',**botones).grid(row=5,column=1,sticky=N+S+E+W)
 Button(window,text="RADAR", command=RADARClick, bg='green',fg='white',**botones).grid(row=2,column=3,sticky=N+S+E+W)
 Button(window,text="RADAR MANUAL", command=RADARMClick, bg='green',fg='white',**botones).grid(row=2,column=4,sticky=N+S+E+W)
-Button(window,text="ORBITA", command=ORBITClick, bg='orange',fg='white',**botones).grid(row=2,column=5,sticky=N+S+E+W)
+Button(window,text="ORBITA 3D", command=ORBITClick, bg='orange',fg='white',**botones).grid(row=2,column=5,sticky=N+S+E+W)
 Button(window, text="MEDIA ARDUINO", command=MEDIAClick, bg='purple', fg='white', **botones).grid(row=3, column=0, sticky=N+S+E+W)
 Button(window, text="ABRIR COMANDOS", command=abrir_fichero_comandos, bg='gray', fg='white', **botones).grid(row=3, column=1, sticky=N+S+E+W)
 
