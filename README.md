@@ -336,6 +336,14 @@ Al haber completado los objetivos pendientes de la versión 2, hemos añadido al
 **Video introductorio de la versión 3:**
 https://www.youtube.com/watch?v=icbPOi3H1ic
 
+# Versión 4: Versión final
+En nuestra última versión del proyecto podreis ver que a parte de todo lo que ya hacia y todo lo que nos faltaba de las otras versiones, hemos añadido un par de detalles para darle un poco de magia y hacer nuestro proyecto más interesante.
+
+En definitiva nuestro satélite es capaz de enviar datos de temperatura, humedad y distancia cada cierto tiempo. 
+Podemos encontrar un sensor de ultrasonidos enganchado a un servomotor que gira 180 grados, esta información de distancia que recibe el sensor de ultrasonidos, es enviada a la interfaz gráfica a través de la estación de tierra para poder dibujar una grafica en forma de radar para poder hacernos una idea de lo que no encontramos fuera del satelite. Además de los datos de distancia de los objetos que hay alrededor, tenemos unos datos de posición del satelite, generados por un simulador de orbitas de arduino, que nos sirven para poder visualizar la orbita a través de una grafica en la interfaz gráfica. 
+Los datos de temperatura y humedad nos aparecen en una gráfic de la interfaz, el color azul indica la temperatura y el color rojo la humedad, aunque para poder visualizar la temperatura o la humedad hay que detener el envio de los otros datos. 
+
+
 # Objetivos a cumplir para la versión 4: 
 - El usuario puede elegir dónde deben calcularse las medias de las 10 últimas temperaturas (si en el satélite o en tierra).
 - El usuario puede cambiar el periodo de envío de datos de temperatura/humedad, de distancia y de posición.
