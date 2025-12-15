@@ -445,6 +445,18 @@ def init_mapa():
             time.sleep(0.5)
     threading.Thread(target=actualizar_mapa_thread, daemon=True).start()
 
+# FUNCIÓN PARA ALARMA 
+def SET_ALARMAClick():
+    val = entrada_limite.get()
+    try:
+        float(val) # Validamos que sea un número
+        if ser: 
+            ser.write(f"MAXT:{val}\n".encode()) # Enviamos formato MAXT:xx
+            print(f"Comando enviado: MAXT:{val}")
+            registrar_evento(401, "USUARIO", f"Límite alarma cambiado a {val}")
+    except ValueError:
+        print("Error: Introduce un número válido para la alarma")
+
 # ---------------- BOTONES Y GUI ----------------
 def TEMPClick():
     global grafica_temp
@@ -551,6 +563,22 @@ radar_frame.grid(row=4,column=3,columnspan=2,sticky=N+S+E+W,padx=5,pady=5)
 # Orbit frame ahora ocupa 2 columnas para alinearse con los botones de Orbita y Mapa
 orbit_frame = Frame(window, bd=2, relief='groove')
 orbit_frame.grid(row=4,column=5,columnspan=2,sticky=N+S+E+W,padx=5,pady=5)
+
+# ... (Debajo del botón ABRIR COMANDOS) ...
+
+# PANEL ALARMA 
+# Usamos un Frame pequeño para agrupar etiqueta, entrada y botón
+frame_alarma = Frame(window, bd=2, relief='groove', bg="#eeeeee")
+# Lo colocamos en la fila 3, ocupando las columnas 2 y 3
+frame_alarma.grid(row=3, column=2, columnspan=2, sticky=N+S+E+W, padx=5, pady=2)
+
+Label(frame_alarma, text="Límite Temp (ºC):", bg="#eeeeee", font=("Arial", 10, "bold")).pack(side=LEFT, padx=5)
+
+entrada_limite = Entry(frame_alarma, width=5, font=("Arial", 11))
+entrada_limite.pack(side=LEFT, padx=5)
+entrada_limite.insert(0, "30") # Valor inicial
+
+Button(frame_alarma, text="FIJAR", command=SET_ALARMAClick, bg='red', fg='white', font=("Arial", 9, "bold")).pack(side=LEFT, padx=5)
 
 # ---------------- INICIAR HILO SERIAL ----------------
 if ser is not None:
