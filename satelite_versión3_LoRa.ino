@@ -28,6 +28,11 @@ unsigned long tiempoHum = 0;
 unsigned long tiempoEnvio = 0;
 unsigned long tiempoLedExito = 0;
 unsigned long tiempoLedError = 0;
+float mediaTemperatura = 0;
+const int MAX_LECTURAS = 50;       // máximo buffer de lecturas si quieres guardar varias
+float bufferTemperaturas[MAX_LECTURAS];
+int numLecturasTemp = 0;
+
 
 int anguloActual = 90;
 int direccion = 1;
@@ -90,21 +95,44 @@ void loop() {
             mensaje += c;
         }
     }
+    if (Serial.available()) {
+    static String mensajeSerial = "";
+    char c = Serial.read();
+    if (c == '\n') {
+        mensajeSerial.trim();
+        procesarComando(mensajeSerial);
+        mensajeSerial = "";
+    } else {
+        mensajeSerial += c;
+    }
+}
 
     // -------------------
     // Lectura de temperatura
     // -------------------
     if (leertemperatura && ahora - tiempoTemp >= INTERVALO_TEMP) {
-        tiempoTemp = ahora;
-        float t = dht.readTemperature();
-        if (isnan(t)) {
-            ISNANT = true;
-            LoRaSerial.println("1!");
+    tiempoTemp = ahora;
+    float t = dht.readTemperature();
+    if (isnan(t)) {
+        ISNANT = true;
+        LoRaSerial.println("1!");
+    } else {
+        TEMPERATURA = t;
+        ISNANT = false;
+
+        // Guardar en buffer para media
+        if (numLecturasTemp < MAX_LECTURAS) {
+            bufferTemperaturas[numLecturasTemp++] = t;
         } else {
-            TEMPERATURA = t;
-            ISNANT = false;
+            // desplazar buffer
+            for (int i = 0; i < MAX_LECTURAS - 1; i++) {
+                bufferTemperaturas[i] = bufferTemperaturas[i+1];
+            }
+            bufferTemperaturas[MAX_LECTURAS-1] = t;
         }
     }
+}
+
 
     // -------------------
     // Lectura de humedad
@@ -222,5 +250,18 @@ void procesarComando(String cmd) {
         if (ang > 180) ang = 180;
         servo.write(ang);
         anguloActual = ang;  
+    }
+    else if (cmd == "M") {
+        if (numLecturasTemp > 0) {
+            float suma = 0;
+            for (int i = 0; i < numLecturasTemp; i++) {
+                suma += bufferTemperaturas[i];
+        }
+        mediaTemperatura = suma / numLecturasTemp;
+        LoRaSerial.print("MEDIA:");
+        LoRaSerial.println(mediaTemperatura, 2);
+        Serial.print("MEDIA:");
+        Serial.println(mediaTemperatura, 2);
+    }
     }
 }
