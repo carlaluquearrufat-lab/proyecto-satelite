@@ -603,6 +603,33 @@ entrada_limite.pack(side=LEFT, padx=5)
 entrada_limite.insert(0, "30") # Valor inicial
 
 Button(frame_alarma, text="FIJAR", command=SET_ALARMAClick, bg='red', fg='white', font=("Arial", 9, "bold")).pack(side=LEFT, padx=5)
+# ---------------- PANEL COMANDOS DE USUARIO ----------------
+frame_comando = Frame(window, bd=2, relief='groove', bg="#dddddd")
+frame_comando.grid(row=3, column=4, columnspan=3,
+                   sticky=N+S+E+W, padx=5, pady=2)
+
+Label(frame_comando, text="Escribir comando/nota:",
+      bg="#dddddd", font=("Arial", 10, "bold")).pack(side=LEFT, padx=5)
+
+entrada_comando = Entry(frame_comando, width=30, font=("Arial", 11))
+entrada_comando.pack(side=LEFT, padx=5)
+
+def enviar_comando_usuario():
+    texto = entrada_comando.get().strip()
+    if texto:
+        registrar_evento(401, "USUARIO", texto)
+        entrada_comando.delete(0, END)
+        print("Comando guardado:", texto)
+
+entrada_comando.bind("<Return>", lambda event: enviar_comando_usuario())
+
+Button(frame_comando, text="GUARDAR",
+       command=enviar_comando_usuario,
+       bg='purple', fg='white',
+       font=("Arial", 9, "bold")).pack(side=LEFT, padx=5)
+
+
+
 
 
 # ---------------- INICIAR HILO SERIAL ----------------
