@@ -4,7 +4,7 @@
 SoftwareSerial LoRaSerial(10, 11); // RX, TX
 LiquidCrystal lcd(13, 12, 6, 4, 3, 2);
 
-const int pinAlarma = 8;
+const int pinAlarma = 7;
 const int pinLed = 5;
 
 // --- Constantes Orbita ---
@@ -13,7 +13,10 @@ const double M = 5.97219e24;
 const double R_EARTH = 6371000;
 const double ALTITUDE = 400000;
 const double EARTH_ROTATION_RATE = 7.2921159e-5;
-const unsigned long MILLIS_BETWEEN_UPDATES = 1000;
+
+// --- AQUI EL CAMBIO: Ya no es const, es una variable modificable ---
+unsigned long millisBetweenUpdates = 1000; 
+
 const double TIME_COMPRESSION = 90.0;
 
 // --- Variables Control ---
@@ -65,7 +68,7 @@ void setup() {
   pinMode(pinAlarma, OUTPUT);
   digitalWrite(pinLed, LOW);
 
-  nextUpdate = MILLIS_BETWEEN_UPDATES;
+  nextUpdate = millisBetweenUpdates; // Usamos la variable
   r = R_EARTH + ALTITUDE;
   real_orbital_period = 2 * PI * sqrt(pow(r, 3) / (G * M));
 
@@ -102,8 +105,7 @@ void loop() {
       int idx;
       float media = 0;
 
-      // --- Parseo (HE MOVIDO ESTO ARRIBA) ---
-      // Es vital parsear ANTES de mostrar en pantalla para tener el valor de 'media'
+      // --- Parseo ---
       if ((idx = linea.indexOf("#:")) != -1) num = linea.substring(idx + 2).toInt();
       if ((idx = linea.indexOf("1:")) != -1) temp = linea.substring(idx + 2).toFloat();
       if ((idx = linea.indexOf("2:")) != -1) hum = linea.substring(idx + 2).toFloat();
@@ -117,14 +119,12 @@ void loop() {
         lcd.clear();
 
         // LÓGICA DE LOS 2 SEGUNDOS:
-        // Si han pasado menos de 2000ms desde la primera conexión:
         if (millis() - momentoConexion < 2000) {
            lcd.setCursor(3, 0);
            lcd.print(texto2_fila1); // Conexion
            lcd.setCursor(3, 1);
            lcd.print(texto2_fila2); // establecida
         } 
-        // Si ya han pasado más de 2 segundos:
         else {
            lcd.setCursor(0, 0);
            lcd.print("Media Temp:");
@@ -171,10 +171,24 @@ void loop() {
   if (Serial.available()) {
     String cmd = Serial.readStringUntil('\n');
     cmd.trim();
+    
+    // CAMBIO ALARMA
     if (cmd.startsWith("MAXT:")) {
       String valorStr = cmd.substring(5);
       limiteMaxTemp = valorStr.toFloat();
-    } else {
+    } 
+    // NUEVO: CAMBIO FRECUENCIA ORBITA
+    else if (cmd.startsWith("FREQ:")) {
+      String valorStr = cmd.substring(5);
+      long nuevaFreq = valorStr.toInt();
+      if (nuevaFreq > 0) {
+        millisBetweenUpdates = nuevaFreq; // Actualizamos la variable
+        // Reiniciamos el timer para aplicar el cambio inmediatamente
+        nextUpdate = millis() + millisBetweenUpdates; 
+      }
+    }
+    // SI NO ES LOCAL, SE ENVIA AL SATELITE POR LORA
+    else {
       LoRaSerial.println(cmd);
     }
   }
@@ -185,7 +199,8 @@ void loop() {
   unsigned long currentTime = millis();
   if (currentTime > nextUpdate) {
     simulate_orbit(currentTime, 0.5, 1);
-    nextUpdate = currentTime + MILLIS_BETWEEN_UPDATES;
+    // Usamos la variable modificable aquí:
+    nextUpdate = currentTime + millisBetweenUpdates;
   }
 }
 
