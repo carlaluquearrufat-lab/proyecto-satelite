@@ -1,4 +1,5 @@
 from tkinter import *
+from tkinter import simpledialog # <--- IMPORTANTE: NECESARIO PARA EL POPUP DE NUMERO
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import serial, threading, time, math
@@ -8,8 +9,8 @@ import matplotlib
 import datetime
 from tkinter import filedialog
 
-from mpl_toolkits.mplot3d import Axes3D  # Necesario para la proyección 3D
-import numpy as np  # Necesario para generar la esfera de la Tierra
+from mpl_toolkits.mplot3d import Axes3D   # Necesario para la proyección 3D
+import numpy as np   # Necesario para generar la esfera de la Tierra
 
 # MAPA (CARTOPY)
 try:
@@ -43,6 +44,7 @@ eventos = {
     209: ("COMANDO", "Reanudar todos los sensores (R)"),
     210: ("COMANDO", "Iniciar temperatura normal (R1)"),
     211: ("COMANDO", "Parar temperatura desde interfaz (S1)"),
+    212: ("COMANDO", "Cambio frecuencia orbita (FREQ)"), 
     # ALARMAS
     301: ("ALARMA", "Error de lectura de temperatura (1!)"),
     302: ("ALARMA", "Error de lectura de humedad (2!)"),
@@ -100,7 +102,6 @@ except Exception as e:
 
 # ---------------- VARIABLES ----------------
 data_lock = threading.Lock()
-
 
 temperaturas = []
 humedades = []
@@ -164,8 +165,6 @@ def lector_serial():
             if not linea:
                 continue
 
-        
-
             with data_lock:
                 # -------- SENSORES --------
                 if '1:' in linea:
@@ -181,7 +180,6 @@ def lector_serial():
                     try: angulos.append(float(linea.split(' 4:')[1].split()[0]))
                     except: pass
                 
-
                 # -------- POSICIÓN --------
                 if linea.startswith("POS"):
                     valores = re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", linea)
@@ -199,14 +197,11 @@ def lector_serial():
                         media_arduino = valor
                         medias_arduino.append(valor)
                         
-                        
                         # LÓGICA DEL POPUP
                         global solicitud_media_popup
                         if solicitud_media_popup:
-                            
                             # Usamos window.after para pedirle a la ventana principal que abra el Popup
                             window.after(0, lambda v=valor: mostrar_media_popup(v))
-                            
                             solicitud_media_popup = False # Bajamos la bandera inmediatamente
                             
                     except Exception as e:
@@ -568,14 +563,31 @@ def MAPAClick():
     else:
         print("Cartopy no instalado.")
 
+# --- NUEVA FUNCIÓN PARA EL BOTÓN DE FRECUENCIA ---
+def FREQ_ORBITAClick():
+    # Pedir al usuario un número (entero)
+    valor = simpledialog.askinteger("Frecuencia Orbita", 
+                                    "Introduce el tiempo (ms) entre actualizaciones de órbita:\n(Ej: 1000 = 1 segundo)",
+                                    parent=window,
+                                    minvalue=50, maxvalue=10000)
+    
+    if valor is not None:
+        if ser:
+            comando = f"FREQ:{valor}\n"
+            ser.write(comando.encode())
+            print(f"Enviando nueva frecuencia de órbita: {valor} ms")
+            registrar_evento(212, "USUARIO", f"Frecuencia órbita cambiada a {valor} ms")
+        else:
+            print("Error: Serial no conectado")
+
 # ---------------- INTERFAZ PRINCIPAL ----------------
 window = Tk()
 window.geometry("1800x800") # Altura reducida
-window.title("INTERFAZ VERSION 4") 
+window.title("INTERFAZ VERSION 5") 
 window.rowconfigure([0,1,2,3,4,5], weight=1)
 window.columnconfigure([0,1,2,3,4,5,6], weight=1)
 
-Label(window, text="VERSION 4", font=("Times New Roman", 20, "bold")).grid(row=0,column=0,columnspan=7,sticky=N+S+E+W)
+Label(window, text="VERSION 5", font=("Times New Roman", 20, "bold")).grid(row=0,column=0,columnspan=7,sticky=N+S+E+W)
 
 botones = {'width':12,'height':2,'font':("Arial",11,"bold"),'relief':'raised','bd':3}
 Button(window,text="TEMP", command=TEMPClick, bg='blue',fg='white',**botones).grid(row=2,column=0,sticky=N+S+E+W)
@@ -592,6 +604,9 @@ Button(window,text="MAPA 2D", command=MAPAClick, bg='cyan',fg='black',**botones)
 
 Button(window, text="MEDIA TEMP. (SATELITE)", command=MEDIAClick, bg='purple', fg='white', **botones).grid(row=3, column=0, sticky=N+S+E+W)
 Button(window, text="ABRIR COMANDOS", command=abrir_fichero_comandos, bg='gray', fg='white', **botones).grid(row=3, column=1, sticky=N+S+E+W)
+
+# --- BOTÓN FRECUENCIA ORBITA ---
+Button(window, text="FREQ ORBITA", command=FREQ_ORBITAClick, bg='#DD8800', fg='white', **botones).grid(row=5, column=5, columnspan=2, sticky=N+S+E+W)
 
 plot_frame = Frame(window, bd=2, relief='groove')
 plot_frame.grid(row=4,column=0,columnspan=3,sticky=N+S+E+W,padx=5,pady=5)
@@ -641,9 +656,6 @@ Button(frame_comando, text="GUARDAR",
        command=enviar_comando_usuario,
        bg='purple', fg='white',
        font=("Arial", 9, "bold")).pack(side=LEFT, padx=5)
-
-
-
 
 
 # ---------------- INICIAR HILO SERIAL ----------------
