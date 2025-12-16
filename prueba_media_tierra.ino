@@ -108,7 +108,7 @@ void loop() {
             if ((idx = linea.indexOf("2:")) != -1) hum = linea.substring(idx + 2).toFloat();
             if ((idx = linea.indexOf("3:")) != -1) dist = linea.substring(idx + 2).toFloat();
             if ((idx = linea.indexOf("4:")) != -1) ang = linea.substring(idx + 2).toInt();
-            if ((idx = linea.indexOf("5:")) != -1) media = linea.substring(idx + 2). toInt();
+            if ((idx = linea.indexOf("5:")) != -1) media = linea.substring(idx + 2). toFloat();
 
             // --- Enviar al PC ---
             Serial.print(" 1: "); Serial.print(temp);
