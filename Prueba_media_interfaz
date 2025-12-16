@@ -180,6 +180,7 @@ def lector_serial():
                 if ' 4:' in linea:
                     try: angulos.append(float(linea.split(' 4:')[1].split()[0]))
                     except: pass
+                
 
                 # -------- POSICIÓN --------
                 if linea.startswith("POS"):
@@ -198,8 +199,6 @@ def lector_serial():
                         media_arduino = valor
                         medias_arduino.append(valor)
                         
-                        
-                        window.after(0, lambda v=valor: media_label.config(text=f"Media: {v:.2f} °C"))
                         
                         # LÓGICA DEL POPUP
                         global solicitud_media_popup
@@ -583,8 +582,6 @@ Button(window,text="TEMP", command=TEMPClick, bg='blue',fg='white',**botones).gr
 Button(window,text="STOPTEMP", command=STOPTClick, bg='blue',fg='white',**botones).grid(row=5,column=0,sticky=N+S+E+W)
 Button(window,text="HUM", command=HUMClick, bg='red',fg='white',**botones).grid(row=2,column=1,sticky=N+S+E+W)
 Button(window,text="STOPHUM", command=STOPHClick, bg='red',fg='white',**botones).grid(row=5,column=1,sticky=N+S+E+W)
-media_label = Label(window, text="Media: --", font=("Arial",12), bg='white', relief='sunken')
-media_label.grid(row=5, column=2, sticky=N+S+E+W, padx=5, pady=5)
 
 Button(window,text="RADAR", command=RADARClick, bg='green',fg='white',**botones).grid(row=2,column=3,sticky=N+S+E+W)
 Button(window,text="RADAR MANUAL", command=RADARMClick, bg='green',fg='white',**botones).grid(row=2,column=4,sticky=N+S+E+W)
@@ -593,7 +590,7 @@ Button(window,text="RADAR MANUAL", command=RADARMClick, bg='green',fg='white',**
 Button(window,text="ORBITA 3D", command=ORBITClick, bg='orange',fg='white',**botones).grid(row=2,column=5,sticky=N+S+E+W)
 Button(window,text="MAPA 2D", command=MAPAClick, bg='cyan',fg='black',**botones).grid(row=2,column=6,sticky=N+S+E+W)
 
-Button(window, text="MEDIA ARDUINO", command=MEDIAClick, bg='purple', fg='white', **botones).grid(row=3, column=0, sticky=N+S+E+W)
+Button(window, text="MEDIA TEMP. (SATELITE)", command=MEDIAClick, bg='purple', fg='white', **botones).grid(row=3, column=0, sticky=N+S+E+W)
 Button(window, text="ABRIR COMANDOS", command=abrir_fichero_comandos, bg='gray', fg='white', **botones).grid(row=3, column=1, sticky=N+S+E+W)
 
 plot_frame = Frame(window, bd=2, relief='groove')
@@ -619,6 +616,7 @@ entrada_limite.pack(side=LEFT, padx=5)
 entrada_limite.insert(0, "30") # Valor inicial
 
 Button(frame_alarma, text="FIJAR", command=SET_ALARMAClick, bg='red', fg='white', font=("Arial", 9, "bold")).pack(side=LEFT, padx=5)
+
 # ---------------- PANEL COMANDOS DE USUARIO ----------------
 frame_comando = Frame(window, bd=2, relief='groove', bg="#dddddd")
 frame_comando.grid(row=3, column=4, columnspan=3,
