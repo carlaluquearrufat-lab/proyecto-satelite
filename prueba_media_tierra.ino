@@ -8,8 +8,8 @@ const int pinAlarma = 8;
 const int pinLed = 5;
 
 // --- Constantes Orbita ---
-const double G = 6.67430e-11;  
-const double M = 5.97219e24;    
+const double G = 6.67430e-11;
+const double M = 5.97219e24;
 const double R_EARTH = 6371000;
 const double ALTITUDE = 400000;
 const double EARTH_ROTATION_RATE = 7.2921159e-5;
@@ -24,6 +24,10 @@ unsigned long marcaLed2 = 0;
 bool alarmaActiva = false;
 unsigned long INTERVALO_PANTALLA = 300;
 unsigned long INTERVALO_LED = 500;
+
+// --- NUEVA VARIABLE PARA CONTROLAR EL TIEMPO DEL MENSAJE DE CONEXIÓN ---
+unsigned long momentoConexion = 0; // Guardará cuándo llegó el primer dato
+bool conexionDetectada = false;    // Bandera para saber si ya conectamos
 
 // --- NUEVAS VARIABLES PARA ALARMA DE USUARIO ---
 float limiteMaxTemp = 100.0; // Valor por defecto alto
@@ -41,10 +45,9 @@ double r;
 
 // --- Declaración de funciones ---
 void simulate_orbit(unsigned long millis_actual, double inclination, int ecef);
-void activarAlarma(float freq, int duracion); // Modificada para duración variable
+void activarAlarma(float freq, int duracion);
 void actualizarAlarma();
 void parpadeoLed();
-void escribirpantalla();
 
 //Textos pantalla
 String texto1_fila1 = "Iniciamos";
@@ -54,7 +57,6 @@ String texto2_fila1 = "Conexion";
 String texto2_fila2 = "establecida";
 
 void setup() {
-
   Serial.begin(9600);
   LoRaSerial.begin(9600);
   lcd.begin(COLS, ROWS);
@@ -70,9 +72,9 @@ void setup() {
   Serial.println("Sistema Tierra listo.");
   lcd.clear();
   lcd.setCursor(3, 0);
-  lcd.print(texto1_fila1);
+  lcd.print(texto1_fila1); // Iniciamos
   lcd.setCursor(3, 1);
-  lcd.print(texto1_fila2);
+  lcd.print(texto1_fila2); // Conexion
   delay(2000);
 }
 
@@ -80,157 +82,155 @@ void loop() {
   // ==========================================
   // 1. RECEPCIÓN DE DATOS (LoRa -> PC)
   // ==========================================
-    if (LoRaSerial.available()) {
-        String linea = LoRaSerial.readStringUntil('\n');
-        linea.trim();
+  if (LoRaSerial.available()) {
+    String linea = LoRaSerial.readStringUntil('\n');
+    linea.trim();
 
-        if (linea.length() > 0) {
-
-            parpadeoLed();
-            if (millis() - marcaPantalla >= INTERVALO_PANTALLA){
-                marcaPantalla = millis();
-                lcd.clear();
-                lcd.setCursor(3, 0);
-                lcd.print(texto2_fila1);
-
-                lcd.setCursor(3, 1);
-                lcd.print(texto2_fila2);
-            }
-
-            float temp = -999, hum = 0, dist = 0; // Temp iniciada en valor imposible
-            int ang = 0, num = 0; 
-            int idx;
-            float media = 0;
-
-            // --- Parseo ---
-            if ((idx = linea.indexOf("#:")) != -1) num = linea.substring(idx + 2).toInt();
-            if ((idx = linea.indexOf("1:")) != -1) temp = linea.substring(idx + 2).toFloat();
-            if ((idx = linea.indexOf("2:")) != -1) hum = linea.substring(idx + 2).toFloat();
-            if ((idx = linea.indexOf("3:")) != -1) dist = linea.substring(idx + 2).toFloat();
-            if ((idx = linea.indexOf("4:")) != -1) ang = linea.substring(idx + 2).toInt();
-            if ((idx = linea.indexOf("5:")) != -1) media = linea.substring(idx + 2). toFloat();
-
-            // --- Enviar al PC ---
-            Serial.print(" 1: "); Serial.print(temp);
-            Serial.print(" 2: "); Serial.print(hum);
-            Serial.print(" 3: "); Serial.print(dist);
-            Serial.print(" 4: "); Serial.println(ang);
-            Serial.print(" 5: "); Serial.println(media);
-
-            // --- LÓGICA DE ALARMA DE USUARIO (NUEVO) ---
-            // Solo verificamos si la temperatura es válida (distinta de -999)
-
-            if (temp != -999) {
-                if (temp > limiteMaxTemp) {
-                    contadorTempHigh++;
-                } else {
-                    contadorTempHigh = 0; // Resetear si baja
-                }
-
-                // Si recibimos 3 seguidos por encima del límite
-                if (contadorTempHigh >= 3) {
-                    activarAlarma(2000, 1000); // Tono agudo (2000Hz) por 1 seg
-                    Serial.println("ALERTA: LIMITE DE TEMPERATURA EXCEDIDO");
-                    contadorTempHigh = 0; // Resetear contador tras sonar
-                }
-            }
-
-            // --- Alarma por error de sensores (Original) ---
-
-            if (linea.indexOf("1!2") >= 0) {
-                activarAlarma(1000, 300);
-            }
-        }
-    }
-    else if (!LoRaSerial.available()){
+    if (linea.length() > 0) {
       
-    }
+      parpadeoLed();
+      
+      // Si es la primera vez que recibimos datos, guardamos el tiempo
+      if (!conexionDetectada) {
+        conexionDetectada = true;
+        momentoConexion = millis();
+      }
 
-    actualizarAlarma();
+      // --- Variables locales para parseo ---
+      float temp = -999, hum = 0, dist = 0;
+      int ang = 0, num = 0;
+      int idx;
+      float media = 0;
 
-    // ==========================================
-    // 2. COMANDOS DESDE PC (PC -> LoRa/Tierra)
-    // ==========================================
+      // --- Parseo (HE MOVIDO ESTO ARRIBA) ---
+      // Es vital parsear ANTES de mostrar en pantalla para tener el valor de 'media'
+      if ((idx = linea.indexOf("#:")) != -1) num = linea.substring(idx + 2).toInt();
+      if ((idx = linea.indexOf("1:")) != -1) temp = linea.substring(idx + 2).toFloat();
+      if ((idx = linea.indexOf("2:")) != -1) hum = linea.substring(idx + 2).toFloat();
+      if ((idx = linea.indexOf("3:")) != -1) dist = linea.substring(idx + 2).toFloat();
+      if ((idx = linea.indexOf("4:")) != -1) ang = linea.substring(idx + 2).toInt();
+      if ((idx = linea.indexOf("5:")) != -1) media = linea.substring(idx + 2).toFloat();
 
-    if (Serial.available()) {
-        String cmd = Serial.readStringUntil('\n');
-        cmd.trim();
+      // --- CONTROL DE PANTALLA ---
+      if (millis() - marcaPantalla >= INTERVALO_PANTALLA) {
+        marcaPantalla = millis();
+        lcd.clear();
 
-        // --- NUEVO: Detectar comando para cambiar el límite ---
-        // Formato esperado desde Python: "MAXT:30.5"
-        if (cmd.startsWith("MAXT:")) {
-
-            String valorStr = cmd.substring(5);
-            limiteMaxTemp = valorStr.toFloat();
-            // Feedback visual o serial opcional
-            // Serial.print("Nuevo limite T: "); Serial.println(limiteMaxTemp); 
-        }
+        // LÓGICA DE LOS 2 SEGUNDOS:
+        // Si han pasado menos de 2000ms desde la primera conexión:
+        if (millis() - momentoConexion < 2000) {
+           lcd.setCursor(3, 0);
+           lcd.print(texto2_fila1); // Conexion
+           lcd.setCursor(3, 1);
+           lcd.print(texto2_fila2); // establecida
+        } 
+        // Si ya han pasado más de 2 segundos:
         else {
-            // Si no es un comando local, lo enviamos al satélite
-            LoRaSerial.println(cmd);
+           lcd.setCursor(0, 0);
+           lcd.print("Media Temp:");
+           lcd.setCursor(0, 1);
+           lcd.print(media);      // Mostramos la variable media recibida
+           lcd.print(" C");
         }
-    }
-    // ==========================================
-    // 3. SIMULACIÓN ORBITA
-    // ==========================================
-    unsigned long currentTime = millis();
-    if (currentTime > nextUpdate) {
-        simulate_orbit(currentTime, 0.5, 1);
-        nextUpdate = currentTime + MILLIS_BETWEEN_UPDATES;
-    }
-}  
+      }
 
+      // --- Enviar al PC ---
+      Serial.print(" 1: "); Serial.print(temp);
+      Serial.print(" 2: "); Serial.print(hum);
+      Serial.print(" 3: "); Serial.print(dist);
+      Serial.print(" 4: "); Serial.println(ang);
+      Serial.print(" 5: "); Serial.println(media);
+
+      // --- LÓGICA DE ALARMA DE USUARIO ---
+      if (temp != -999) {
+        if (temp > limiteMaxTemp) {
+          contadorTempHigh++;
+        } else {
+          contadorTempHigh = 0;
+        }
+
+        if (contadorTempHigh >= 3) {
+          activarAlarma(2000, 1000);
+          Serial.println("ALERTA: LIMITE DE TEMPERATURA EXCEDIDO");
+          contadorTempHigh = 0;
+        }
+      }
+
+      // --- Alarma por error de sensores ---
+      if (linea.indexOf("1!2") >= 0) {
+        activarAlarma(1000, 300);
+      }
+    }
+  }
+  
+  actualizarAlarma();
+
+  // ==========================================
+  // 2. COMANDOS DESDE PC
+  // ==========================================
+  if (Serial.available()) {
+    String cmd = Serial.readStringUntil('\n');
+    cmd.trim();
+    if (cmd.startsWith("MAXT:")) {
+      String valorStr = cmd.substring(5);
+      limiteMaxTemp = valorStr.toFloat();
+    } else {
+      LoRaSerial.println(cmd);
+    }
+  }
+
+  // ==========================================
+  // 3. SIMULACIÓN ORBITA
+  // ==========================================
+  unsigned long currentTime = millis();
+  if (currentTime > nextUpdate) {
+    simulate_orbit(currentTime, 0.5, 1);
+    nextUpdate = currentTime + MILLIS_BETWEEN_UPDATES;
+  }
+}
 
 // ---------------- FUNCIONES AUXILIARES ----------------
-
-// Modificado para aceptar duración
 unsigned long duracionAlarma = 300;
 
-void activarAlarma (float freq, int duracion){
-
-    tone(pinAlarma, freq);
-    alarmaActiva = true;
-    marcaAlarma = millis();
-    duracionAlarma = duracion;
+void activarAlarma(float freq, int duracion) {
+  tone(pinAlarma, freq);
+  alarmaActiva = true;
+  marcaAlarma = millis();
+  duracionAlarma = duracion;
 }
 
-void actualizarAlarma (){
-
-    if (alarmaActiva && millis() - marcaAlarma >= duracionAlarma) {
-        noTone(pinAlarma);
-        alarmaActiva = false;
-    }
+void actualizarAlarma() {
+  if (alarmaActiva && millis() - marcaAlarma >= duracionAlarma) {
+    noTone(pinAlarma);
+    alarmaActiva = false;
+  }
 }
 
-void parpadeoLed (){
-
-    digitalWrite(pinLed, HIGH);
-    delay(10);
-    digitalWrite(pinLed, LOW);
+void parpadeoLed() {
+  digitalWrite(pinLed, HIGH);
+  delay(10);
+  digitalWrite(pinLed, LOW);
 }
 
+void simulate_orbit(unsigned long millis_val, double inclination, int ecef) {
+  double time = (millis_val / 1000.0) * TIME_COMPRESSION;
+  double angle = 2 * PI * (time / real_orbital_period);
 
-void simulate_orbit (unsigned long millis_val, double inclination, int ecef){
+  double x = r * cos(angle);
+  double y = r * sin(angle) * cos(inclination);
+  double z = r * sin(angle) * sin(inclination);
 
-    double time = (millis_val / 1000.0) * TIME_COMPRESSION;
-    double angle = 2 * PI * (time / real_orbital_period);
-
-    double x = r * cos(angle);
-    double y = r * sin(angle) * cos(inclination);
-    double z = r * sin(angle) * sin(inclination);
-
-    if (ecef) {
-        double theta = EARTH_ROTATION_RATE * time;
-        double x_ecef = x * cos(theta) - y * sin(theta);
-        double y_ecef = x * sin(theta) + y * cos(theta);
-        x = x_ecef;
-        y = y_ecef;
-    }
-
-    Serial.print("POS ");
-    Serial.print(x);
-    Serial.print(" ");
-    Serial.print(y);
-    Serial.print(" ");
-    Serial.println(z);    
-}  
+  if (ecef) {
+    double theta = EARTH_ROTATION_RATE * time;
+    double x_ecef = x * cos(theta) - y * sin(theta);
+    double y_ecef = x * sin(theta) + y * cos(theta);
+    x = x_ecef;
+    y = y_ecef;
+  }
+  Serial.print("POS ");
+  Serial.print(x);
+  Serial.print(" ");
+  Serial.print(y);
+  Serial.print(" ");
+  Serial.println(z);
+}
