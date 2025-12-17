@@ -179,7 +179,9 @@ eventos = {
     402: ("USUARIO", "Nota importante marcada por el usuario"),
     403: ("USUARIO", "Usuario reporta posible fallo físico"),
     404: ("USUARIO", "Usuario reinicia la interfaz"),
-    405: ("USUARIO", "Usuario reinicia el satélite")
+    405: ("USUARIO", "Usuario reinicia el satélite"),
+    406: ("USUARIO", "Usuario pide que se calcule la media en el arduino"),
+
 }
 
 def registrar_evento_por_codigo(codigo):
@@ -246,7 +248,7 @@ mapaEncendido = False
 
 # Matplotlib para Tkinter
 canvas_temp = None
-media_arduino = None
+media_arduino = 0.0
 fig_temp = None
 ax_temp = None
 solicitud_media_popup = False
@@ -303,7 +305,21 @@ def lector_serial():
                     try: angulos.append(float(linea.split(' 4:')[1].split()[0]))
                     except: pass
                 # Procesar media de Arduino
-                
+                                # -------- MEDIA --------
+                if linea.startswith("5:"):
+                    try:
+                        valor = float(linea.split(":")[1])
+                        media_arduino = valor
+                        medias_arduino.append(valor)
+
+                        global solicitud_media_popup
+                        if solicitud_media_popup:
+                            window.after(0, lambda v=valor: mostrar_media_popup(v))
+                            solicitud_media_popup = False
+
+                    except Exception as e:
+                        print("Error procesando media:", e)
+
                 # -------- POSICIÓN --------
                 if linea.startswith("POS"):
                     valores = re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", linea)
@@ -606,6 +622,22 @@ def SET_ALARMAClick():
             registrar_evento(401, "USUARIO", f"Límite alarma cambiado a {val}")
     except ValueError:
         print("Error: Introduce un número válido para la alarma")
+def mostrar_media_popup(valor):
+    win = Toplevel(window)
+    win.title("Media de Temperatura")
+    win.geometry("250x120")
+    win.resizable(False, False)
+
+    Label(win, text="Media Temperatura (ºC)",
+          font=("Arial", 12, "bold")).pack(pady=10)
+
+    Label(win, text=f"{valor:.2f} ºC",
+          font=("Arial", 14),
+          fg="blue").pack(pady=5)
+
+    Button(win, text="Cerrar", command=win.destroy).pack(pady=5)
+
+
 def FREQ_ORBITAClick():
     valor = simpledialog.askinteger("Frecuencia Orbita", 
                                     "Introduce el tiempo (ms) entre actualizaciones de órbita:\n(Ej: 1000 = 1 segundo)",
@@ -632,11 +664,12 @@ def TEMPClick():
 
 def MEDIAClick():
     global solicitud_media_popup
-    if ser:
-        ser.write(b"M\n")  # pide la media al Arduino
     solicitud_media_popup = True
-    registrar_evento_por_codigo(210)  # código de evento para registro
     
+    if ser:
+        ser.write(b"M\n")
+    registrar_evento_por_codigo(406)
+
 
 def RADARStopClick():
     if ser:
@@ -760,6 +793,14 @@ btn_abrir_comandos.grid(row=5, column=3, sticky=N+S+E+W)
 
 btn_parar_radar = Button(window, text=traducciones[idioma]["parar_radar"], command=RADARStopClick, bg='green', fg='white', **botones)
 btn_parar_radar.grid(row=2, column=4, sticky=N+S+E+W)
+btn_media = Button(window,
+                   text="MEDIA",
+                   width=12,
+                   height=2,
+                   bg="lightblue",
+                   command=MEDIAClick)
+
+btn_media.grid(row=5, column=4, padx=10, pady=5)
 
 plot_frame = Frame(window, bd=2, relief='groove')
 plot_frame.grid(row=4,column=0,columnspan=3,sticky=N+S+E+W,padx=5,pady=5)
