@@ -17,7 +17,7 @@ const unsigned long INTERVALO_SERVO = 20;
 const unsigned long INTERVALO_DIST = 80;
 const unsigned long INTERVALO_TEMP = 3000;
 const unsigned long INTERVALO_HUM = 3000;
-const unsigned long INTERVALO_ENVIO = 2000; // Envío de telemetría automática
+const unsigned long INTERVALO_ENVIO = 3000; 
 const unsigned long INTERVALO_LED = 500;
 
 // ----- VARIABLES -----
@@ -28,14 +28,18 @@ unsigned long tiempoHum = 0;
 unsigned long tiempoEnvio = 0;
 unsigned long tiempoLedExito = 0;
 unsigned long tiempoLedError = 0;
+int ultimoAnguloEscrito = 90;
 
-// -- BUFFER PARA MEDIA --
+// ----- RADAR -----
+enum RadarModo { RADAR_AUTO, RADAR_MANUAL, RADAR_STOP };
+RadarModo radarModo = RADAR_AUTO;
+
+// ----- BUFFER PARA MEDIA -----
 const int MAX_LECTURAS = 50; 
 float bufferTemperaturas[MAX_LECTURAS];
 int numLecturasTemp = 0;
-float mediaTemperatura = 0;
 
-// -- VARIABLES DE ESTADO --
+// ----- VARIABLES DE ESTADO -----
 int anguloActual = 90;
 int direccion = 1;
 int contador = 0;
@@ -52,20 +56,42 @@ bool ISNANH = false;
 bool leertemperatura = true;
 bool leerhumedad = true;
 bool leerdistancia = true;
-bool radarmanual = false;
 
-// Objetos
+// ----- OBJETOS -----
 Servo servo;
 DHT dht(DHTPIN, DHTTYPE);
 SoftwareSerial LoRaSerial(10, 11); // RX, TX
 
 int numeroEnvio = 1;
 
+// ----- PROTOTIPOS DE FUNCIONES -----
+void escribirServo(int ang, bool fuerza=false) {
+    if (radarModo == RADAR_MANUAL && fuerza) {
+        // Modo manual: siempre escribir
+        servo.write(ang);
+        ultimoAnguloEscrito = ang; // actualizar para consistencia
+    } 
+    else if (radarModo == RADAR_AUTO) {
+        // Modo automático: escribir solo si cambió
+        if (ang != ultimoAnguloEscrito) {
+            servo.write(ang);
+            ultimoAnguloEscrito = ang;
+        }
+    }
+    // Radar STOP: no escribir
+}
+
+void moverManual(int ang);
+
+void actualizarServo();
+float medirDistancia();
+void parpadeoLed(int ledPin, unsigned long &marca, unsigned long ahora);
+void procesarComando(String cmd);
+
 // ----- SETUP -----
 void setup() {
-    servo.attach(13); // OJO: Verifica si tu servo está en el 13 o en el 9 (en tu código anterior ponía 13)
+    servo.attach(13);
     servo.write(anguloActual);
-
     pinMode(TRIG, OUTPUT);
     pinMode(ECO, INPUT);
     pinMode(LED, OUTPUT);
@@ -79,7 +105,7 @@ void setup() {
 
     dht.begin();
     
-    // Inicializar buffer a 0 por seguridad
+    // Inicializar buffer a 0
     for(int i=0; i<MAX_LECTURAS; i++){
         bufferTemperaturas[i] = 0.0;
     }
@@ -89,11 +115,10 @@ void setup() {
 
 // ----- LOOP -----
 void loop() {
+    actualizarServo();
     unsigned long ahora = millis();
 
-    // -------------------
     // 1. Lectura de comandos (LoRa y Serial USB)
-    // -------------------
     if (LoRaSerial.available()) {
         static String mensaje = "";
         char c = LoRaSerial.read();
@@ -118,56 +143,34 @@ void loop() {
         }
     }
 
-    // -------------------
     // 2. Lectura de Temperatura
-    // -------------------
     if (leertemperatura && (ahora - tiempoTemp >= INTERVALO_TEMP)) {
         tiempoTemp = ahora;
         float t = dht.readTemperature();
-        
-        if (isnan(t)) {
-            ISNANT = true;
-            // LoRaSerial.println("1!"); // Opcional: Notificar error inmediato
-        } else {
+        if (isnan(t)) ISNANT = true;
+        else {
             TEMPERATURA = t;
             ISNANT = false;
-
-            // --- AGREGAR AL BUFFER PARA LA MEDIA ---
-            if (numLecturasTemp < MAX_LECTURAS) {
-                bufferTemperaturas[numLecturasTemp++] = t;
-            } else {
-                // Buffer lleno: desplazamos todo a la izquierda (FIFO)
-                for (int i = 0; i < MAX_LECTURAS - 1; i++) {
-                    bufferTemperaturas[i] = bufferTemperaturas[i+1];
-                }
+            if (numLecturasTemp < MAX_LECTURAS) bufferTemperaturas[numLecturasTemp++] = t;
+            else {
+                for (int i = 0; i < MAX_LECTURAS-1; i++) bufferTemperaturas[i] = bufferTemperaturas[i+1];
                 bufferTemperaturas[MAX_LECTURAS-1] = t;
             }
         }
     }
 
-    // -------------------
     // 3. Lectura de Humedad
-    // -------------------
     if (leerhumedad && (ahora - tiempoHum >= INTERVALO_HUM)) {
         tiempoHum = ahora;
         float h = dht.readHumidity();
-        if (isnan(h)) {
-            ISNANH = true;
-            // LoRaSerial.println("2!");
-        } else {
-            HUMEDAD = h;
-            ISNANH = false;
-        }
+        if (isnan(h)) ISNANH = true;
+        else { HUMEDAD = h; ISNANH = false; }
     }
 
-    // -------------------
-    // 4. Gestión de Errores (Led y Buzzer)
-    // -------------------
-    if (ISNANT || ISNANH) { // He cambiado && por || para que avise si falla CUALQUIERA de los dos
+    // 4. Gestión de Errores
+    if (ISNANT || ISNANH) {
         parpadeoLed(ledError, tiempoLedError, ahora);
         digitalWrite(ledExito, LOW);
-        
-        // Solo pita si fallan ambos o lógica específica
         if (ISNANT && ISNANH) {
             tone(BUZZER, 1000);
             contador++;
@@ -180,68 +183,60 @@ void loop() {
         digitalWrite(ledError, LOW);
         contador = 0;
     }
-
     if (contador >= 3) {
-        LoRaSerial.println("1!2"); // Alarma critica
+        LoRaSerial.println("1!2");
         contador = 0; 
     }
 
-    // -------------------
-    // 5. Movimiento Servo (Radar)
-    // -------------------
-    if (!radarmanual && leerdistancia && (ahora - tiempoServo >= INTERVALO_SERVO)) {
-        tiempoServo = ahora;
-        anguloActual += incremento * direccion;
-        
-        if (anguloActual >= 180) {
-            anguloActual = 180;
-            direccion = -1;
-        } else if (anguloActual <= 0) {
-            anguloActual = 0;
-            direccion = 1;
-        }
-        servo.write(anguloActual);
-    }
-
-    // -------------------
     // 6. Medición Distancia
-    // -------------------
     if (leerdistancia && (ahora - tiempoDist >= INTERVALO_DIST)) {
         tiempoDist = ahora;
         DISTANCIA = medirDistancia();
         if (DISTANCIA < 0) DISTANCIA = 0; 
     }
 
-    // -------------------
-    // 7. Envío Automático (Telemetría normal)
-    // -------------------
+    // 7. Envío Automático
     if (ahora - tiempoEnvio >= INTERVALO_ENVIO) {
         tiempoEnvio = ahora;
-
         String mensaje = "#:" + String(numeroEnvio);
-        
-        if (leertemperatura) mensaje += " 1:" + String(TEMPERATURA, 1);
-        if (leerhumedad)     mensaje += " 2:" + String(HUMEDAD, 1);
-        if (leerdistancia)   mensaje += " 3:" + String(DISTANCIA, 1);
-        
-        // Siempre enviamos el ángulo para el radar
+        if (leertemperatura) mensaje += " 1:" + String(TEMPERATURA,1);
+        if (leerhumedad) mensaje += " 2:" + String(HUMEDAD,1);
+        if (leerdistancia) mensaje += " 3:" + String(DISTANCIA,1);
         mensaje += " 4:" + String(anguloActual);
-
         LoRaSerial.println(mensaje);
-        
+
         // LED Éxito
         if (!ISNANT && !ISNANH) {
-             // Pequeño pulso manual para asegurar que se ve
-             digitalWrite(ledExito, HIGH);
-             delay(50); // Pequeño delay no bloqueante crítico
-             digitalWrite(ledExito, LOW);
+            if (ahora - tiempoLedExito >= 50) {
+                digitalWrite(ledExito, !digitalRead(ledExito));
+                tiempoLedExito = ahora;
+            }
         }
-        
         numeroEnvio++;
     }
 }
 
 // ----- FUNCIONES AUXILIARES -----
+
+void moverManual(int ang) {
+    anguloActual = constrain(ang, 0, 180);
+    escribirServo(anguloActual, true);
+}
+
+void actualizarServo() {
+    if (radarModo != RADAR_AUTO) return;
+
+    unsigned long ahora = millis();
+    if (ahora - tiempoServo < INTERVALO_SERVO) return;
+    tiempoServo = ahora;
+
+    anguloActual += incremento * direccion;
+    if (anguloActual >= 180) { anguloActual = 180; direccion = -1; }
+    else if (anguloActual <= 0) { anguloActual = 0; direccion = 1; }
+
+    escribirServo(anguloActual); // automático
+}
+
 
 float medirDistancia() {
     digitalWrite(TRIG, LOW);
@@ -250,7 +245,7 @@ float medirDistancia() {
     delayMicroseconds(10);
     digitalWrite(TRIG, LOW);
 
-    unsigned long duracion = pulseIn(ECO, HIGH, 25000UL); // Timeout reducido para no bloquear
+    unsigned long duracion = pulseIn(ECO, HIGH, 25000UL);
     if (duracion == 0) return -1.0;
     return duracion / 58.2;
 }
@@ -263,50 +258,82 @@ void parpadeoLed(int ledPin, unsigned long &marca, unsigned long ahora) {
 }
 
 void procesarComando(String cmd) {
-    cmd.trim(); // Quitar espacios sobrantes
+    cmd.trim();
 
-    // --- COMANDOS DE SENSORES ---
-    if (cmd.indexOf("S1") >= 0)      leertemperatura = false;
-    else if (cmd.indexOf("S2") >= 0) leerhumedad = false;
-    else if (cmd.indexOf("S3") >= 0) leerdistancia = false;
-    
-    else if (cmd.indexOf("R1") >= 0) leertemperatura = true;
-    else if (cmd.indexOf("R2") >= 0) leerhumedad = true;
-    else if (cmd.indexOf("R3") >= 0) {
+    // =========================
+    // CONTROL DE SENSORES
+    // =========================
+    if (cmd == "S1") {
+        leertemperatura = false;
+    }
+    else if (cmd == "S2") {
+        leerhumedad = false;
+    }
+    else if (cmd == "S3") {
+        leerdistancia = false;
+    }
+    else if (cmd == "R1") {
+        leertemperatura = true;
+    }
+    else if (cmd == "R2") {
+        leerhumedad = true;
+    }
+    else if (cmd == "R3") {
         leerdistancia = true;
-        radarmanual = false; // Al reanudar sensor distancia, reactivamos barrido
     }
 
-    // --- RADAR MANUAL ---
-    else if (cmd.startsWith("RM:")) {
-        radarmanual = true;
-        int ang = cmd.substring(3).toInt();
-        ang = constrain(ang, 0, 180);
-        servo.write(ang);
-        anguloActual = ang;  
+    // =========================
+    // CONTROL RADAR / SERVO
+    // =========================
+    static bool servoActivo = true; // recuerda si el servo está attach
+
+    // Radar parado
+    if (cmd == "RS") {
+        radarModo = RADAR_STOP;
+        if (servoActivo) {
+            servo.detach();        // Mantiene posición y evita glitches
+            servoActivo = false;
+        }
     }
-    
-    // --- CALCULO DE MEDIA (BOTON MEDIA ARDUINO) ---
+    // Radar automático
+    else if (cmd == "RA" || cmd == "RR") {
+        radarModo = RADAR_AUTO;
+        if (!servoActivo) {
+            servo.attach(13);      // Reactivar servo si estaba detach
+            servoActivo = true;
+        }
+    }
+    // Radar manual (RM:angulo)
+    else if (cmd.startsWith("RM:")) {
+        radarModo = RADAR_MANUAL;
+        int ang = cmd.substring(3).toInt();
+        anguloActual = constrain(ang, 0, 180);   // fijar ángulo
+        escribirServo(anguloActual, true);       // ⚡ fuerza el movimiento manual
+        if (!servoActivo) {
+            servo.attach(13);                    // asegurar que el servo esté activo
+            servoActivo = true;
+        }
+    }
+
+    // =========================
+    // MEDIA TEMPERATURA
+    // =========================
     else if (cmd == "M") {
-        float promedio = 0;
-        
+        float promedio = 0.0;
         if (numLecturasTemp > 0) {
-            float suma = 0;
+            float suma = 0.0;
             for (int i = 0; i < numLecturasTemp; i++) {
                 suma += bufferTemperaturas[i];
             }
             promedio = suma / numLecturasTemp;
         } else {
-            // Si no hay lecturas, devolvemos la actual o 0
             promedio = TEMPERATURA;
         }
 
-        // Enviamos con la etiqueta que espera Python: "MEDIA:xx.xx"
         LoRaSerial.print("MEDIA:");
         LoRaSerial.println(promedio);
-        
-        // Debug por USB local si lo tienes conectado
-        Serial.print("Comando M recibido. Media calculada: ");
+
+        Serial.print("MEDIA enviada: ");
         Serial.println(promedio);
     }
 }
