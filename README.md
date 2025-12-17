@@ -717,12 +717,11 @@ Los datos de temperatura y humedad nos aparecen en una gráfico de la interfaz, 
 
 
 
-# Objetivos a cumplir para la versión 4: 
-- El usuario puede elegir dónde deben calcularse las medias de las 10 últimas temperaturas (si en el satélite o en tierra).
-- El usuario puede cambiar el periodo de envío de datos de temperatura/humedad, de distancia y de posición.
-- El usuario puede establecer el valor máximo de temperatura que hará que salte una alarma si se reciben tres valores medios seguidos por encima de ese valor máximo.
-- El usuario puede introducir en el sistema texto con sus observaciones en cualquier momento.
-- El sistema registra en ficheros los 3 tipos de eventos (alarmas, comandos y observaciones).
-- El usuario puede consultar en cualquier momento los eventos registrados, filtrando por dia y por tipo de evento.
-- El sistema de comunicaciones usa el mecanismo de checksum para detectar alteraciones en el mensaje.
-- 
+# Complementos añadidos en la versión 4: 
+- Pantalla LCD 1602 en la estación de tierra que nos escribe algunos mensajes como "Conexión establecida".
+- La órbita mostrada en la interfaz en 3D.
+- Poder cambiar el idioma de la interfaz. Tenemos la opción de tenerlo en castellano, inglés o en chino.
+- Cajas impreses en 3d para la estación de tierra y para el satélite.
+  https://www.tinkercad.com/things/03zUn7bJhpA-satelite?sharecode=7c37xDYE8clnHKsiDSPyY3ky6TD5HbNhtTHXYAx4EUI
+  https://www.tinkercad.com/things/28N9JQKFnjQ-tierra?sharecode=iBcDcr7fODBJKSEA2U5JFaFap1RKmUYZWhpY3S-DtNg
+  
