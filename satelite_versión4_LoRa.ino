@@ -59,7 +59,6 @@ bool ISNANH = false;
 bool leertemperatura = true;
 bool leerhumedad = true;
 bool leerdistancia = true;
-bool enviarMedia = false;
 
 
 // ----- OBJETOS -----
@@ -111,6 +110,9 @@ void setup() {
     dht.begin();
     // --- Lectura inicial para evitar ceros ---
     delay(2000); // tiempo recomendado DHT11
+    for(int i=0; i<MAX_LECTURAS; i++){
+        bufferTemperaturas[i] = 0.0;
+    }
     float tIni = dht.readTemperature();
     if (!isnan(tIni)) {
         TEMPERATURA = tIni;
@@ -123,9 +125,6 @@ void setup() {
     }
 
     // Inicializar buffer a 0
-    for(int i=0; i<MAX_LECTURAS; i++){
-        bufferTemperaturas[i] = 0.0;
-    }
     
     Serial.println("SATELITE INICIADO. Esperando comandos...");
 }
@@ -220,17 +219,10 @@ void loop() {
         String mensaje = "#:" + String(numeroEnvio);
 
                 if (leertemperatura) mensaje += " 1:" + String(TEMPERATURA,1);
-                if (leerhumedad) mensaje += " 2:" + String(HUMEDAD,1);
-                if (leerdistancia) mensaje += " 3:" + String(DISTANCIA,1);
-                if (enviarMedia) {
-                    float media = calcularMediaTemperatura();
-                    mensaje += " 5:" + String(media, 2);
-                    enviarMedia = false; // muy importante para que solo lo haga una vez
-                } 
+                if (leerhumedad)     mensaje += " 2:" + String(HUMEDAD,1);
+                if (leerdistancia)   mensaje += " 3:" + String(DISTANCIA,1);
 
-
-                // Añadir media directamente
-
+                mensaje += " 5:" + String(mediaTemperatura, 2);
                 mensaje += " 4:" + String(anguloActual);
 
         LoRaSerial.println(mensaje);
@@ -345,10 +337,6 @@ void procesarComando(String cmd) {
     // =========================
     // MEDIA TEMPERATURA
     // =========================
-    else if (cmd == "M") {
-    enviarMedia = true;
-    Serial.println("Media solicitada (se enviará en el próximo paquete)");
-    }
 
 }
 float calcularMediaTemperatura() {
