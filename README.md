@@ -345,15 +345,12 @@ Los datos de temperatura y humedad nos aparecen en una gráfico de la interfaz, 
 
 **Código Relevante Versión 4**
 
-# INTERFAZ VERSION 4 – RESUMEN DEL CÓDIGO MÁS RELEVANTE
+//INTERFAZ VERSION 4 – RESUMEN DEL CÓDIGO MÁS RELEVANTE
 
+//COMUNICACIÓN SERIE CON CONFIRMACIÓN (ACK)
 
-
-# COMUNICACIÓN SERIE CON CONFIRMACIÓN (ACK)
-
-# Esta función envía comandos críticos al Arduino y espera
-# una confirmación "OK" para asegurar que el mensaje llegó.
-
+//Esta función envía comandos críticos al Arduino y espera
+//una confirmación "OK" para asegurar que el mensaje llegó.
 
 def enviar_con_ack(comando, intentos=5, espera_ack=0.8):
     for i in range(intentos):
@@ -367,12 +364,10 @@ def enviar_con_ack(comando, intentos=5, espera_ack=0.8):
         time.sleep(espera_ack)
     return False
 
+//SISTEMA DE REGISTRO DE EVENTOS (LOG)
 
-# SISTEMA DE REGISTRO DE EVENTOS (LOG)
-
-# Todo lo que ocurre (comandos, alarmas, acciones del
-# usuario) se guarda en un archivo eventos.log
-
+//Todo lo que ocurre (comandos, alarmas, acciones del
+//usuario) se guarda en un archivo eventos.log
 
 LOG_FILE = "eventos.log"
 
@@ -380,14 +375,11 @@ def registrar_evento(codigo, tipo, mensaje):
     fecha = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     with open(LOG_FILE, "a") as f:
         f.write(f"{fecha}\t{codigo}\t{tipo}\t{mensaje}\n")
+        
+//TABLA DE EVENTOS POR CÓDIGO
 
-
-
-# TABLA DE EVENTOS POR CÓDIGO
-
-# Permite registrar acciones usando solo un número,
-# manteniendo coherencia en todo el sistema
-
+//Permite registrar acciones usando solo un número,
+//manteniendo coherencia en todo el sistema
 
 eventos = {
     201: ("COMANDO", "Parar temperatura"),
