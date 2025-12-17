@@ -51,6 +51,7 @@ def registrar_evento(codigo, tipo, mensaje):
     with open(LOG_FILE, "a") as f:
         f.write(linea)
     print("Evento registrado:", linea.strip())
+    
 # ---------------------- MULTI-IDIOMA ----------------------
 
 traducciones = {
@@ -120,7 +121,7 @@ traducciones = {
 }
 
 idioma = "es"  # <-- Aquí eliges el idioma ("es", "en", "zh", etc.)
-# -----------------------------------------------------------
+
 def actualizar_idioma():
     """Actualiza todos los textos de la interfaz según el idioma seleccionado"""
     # Etiqueta versión
@@ -276,7 +277,7 @@ y_vals = []
 z_vals = []
 
 # ---------------- LECTOR SERIAL ----------------
-# ---------------- LECTOR SERIAL CORREGIDO ----------------
+
 def lector_serial():
     global media_arduino
     if ser is None: 
