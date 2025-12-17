@@ -1,5 +1,6 @@
 #include <Servo.h>
 #include <SoftwareSerial.h>
+
 #include <DHT.h>
 
 // ----- PINES -----
@@ -38,6 +39,8 @@ RadarModo radarModo = RADAR_AUTO;
 const int MAX_LECTURAS = 50; 
 float bufferTemperaturas[MAX_LECTURAS];
 int numLecturasTemp = 0;
+float mediaTemperatura = 0;
+
 
 // ----- VARIABLES DE ESTADO -----
 int anguloActual = 90;
@@ -56,6 +59,8 @@ bool ISNANH = false;
 bool leertemperatura = true;
 bool leerhumedad = true;
 bool leerdistancia = true;
+bool enviarMedia = false;
+
 
 // ----- OBJETOS -----
 Servo servo;
@@ -104,7 +109,19 @@ void setup() {
     LoRaSerial.begin(9600);
 
     dht.begin();
-    
+    // --- Lectura inicial para evitar ceros ---
+    delay(2000); // tiempo recomendado DHT11
+    float tIni = dht.readTemperature();
+    if (!isnan(tIni)) {
+        TEMPERATURA = tIni;
+        bufferTemperaturas[0] = tIni;
+        numLecturasTemp = 1;
+        Serial.print("Lectura inicial Temp: ");
+        Serial.println(tIni);
+    } else {
+        Serial.println("Error lectura inicial DHT");
+    }
+
     // Inicializar buffer a 0
     for(int i=0; i<MAX_LECTURAS; i++){
         bufferTemperaturas[i] = 0.0;
@@ -198,20 +215,30 @@ void loop() {
     // 7. Envío Automático
     if (ahora - tiempoEnvio >= INTERVALO_ENVIO) {
         tiempoEnvio = ahora;
+        mediaTemperatura = calcularMediaTemperatura();
+
         String mensaje = "#:" + String(numeroEnvio);
-        if (leertemperatura) mensaje += " 1:" + String(TEMPERATURA,1);
-        if (leerhumedad) mensaje += " 2:" + String(HUMEDAD,1);
-        if (leerdistancia) mensaje += " 3:" + String(DISTANCIA,1);
-        mensaje += " 4:" + String(anguloActual);
+
+                if (leertemperatura) mensaje += " 1:" + String(TEMPERATURA,1);
+                if (leerhumedad) mensaje += " 2:" + String(HUMEDAD,1);
+                if (leerdistancia) mensaje += " 3:" + String(DISTANCIA,1);
+                if (enviarMedia) {
+                    float media = calcularMediaTemperatura();
+                    mensaje += " 5:" + String(media, 2);
+                    enviarMedia = false; // muy importante para que solo lo haga una vez
+                } 
+
+
+                // Añadir media directamente
+
+                mensaje += " 4:" + String(anguloActual);
+
         LoRaSerial.println(mensaje);
 
         // LED Éxito
-        if (!ISNANT && !ISNANH) {
-            if (ahora - tiempoLedExito >= 50) {
-                digitalWrite(ledExito, !digitalRead(ledExito));
-                tiempoLedExito = ahora;
-            }
-        }
+        digitalWrite(ledExito, HIGH);
+        delay(40);
+        digitalWrite(ledExito, LOW);
         numeroEnvio++;
     }
 }
@@ -319,21 +346,18 @@ void procesarComando(String cmd) {
     // MEDIA TEMPERATURA
     // =========================
     else if (cmd == "M") {
-        float promedio = 0.0;
-        if (numLecturasTemp > 0) {
-            float suma = 0.0;
-            for (int i = 0; i < numLecturasTemp; i++) {
-                suma += bufferTemperaturas[i];
-            }
-            promedio = suma / numLecturasTemp;
-        } else {
-            promedio = TEMPERATURA;
-        }
-
-        LoRaSerial.print("MEDIA:");
-        LoRaSerial.println(promedio);
-
-        Serial.print("MEDIA enviada: ");
-        Serial.println(promedio);
+    enviarMedia = true;
+    Serial.println("Media solicitada (se enviará en el próximo paquete)");
     }
+
 }
+float calcularMediaTemperatura() {
+    if (numLecturasTemp == 0) return TEMPERATURA;
+
+    float suma = 0.0;
+    for (int i = 0; i < numLecturasTemp; i++) {
+        suma += bufferTemperaturas[i];
+    }
+    return suma / numLecturasTemp;
+}
+
