@@ -337,11 +337,17 @@ Al haber completado los objetivos pendientes de la versión 2, hemos añadido al
 https://www.youtube.com/watch?v=icbPOi3H1ic
 
 # Versión 4: Versión final
-En nuestra última versión del proyecto podreis ver que a parte de todo lo que ya hacia y todo lo que nos faltaba de las otras versiones, hemos añadido un par de detalles para darle un poco de magia y hacer nuestro proyecto más interesante.
+En la última versión de nuestro proyecto se mantienen todas las funcionalidades desarrolladas en versiones anteriores y se incorporan algunos detalles adicionales para hacerlo más completo e interesante.
 
-En definitiva nuestro satélite es capaz de enviar datos de temperatura, humedad y distancia cada cierto tiempo. 
-Podemos encontrar un sensor de ultrasonidos enganchado a un servomotor que gira 180 grados, esta información de distancia que recibe el sensor de ultrasonidos, es enviada a la interfaz gráfica a través de la estación de tierra para poder dibujar una grafica en forma de radar para poder hacernos una idea de lo que no encontramos fuera del satelite. Además de los datos de distancia de los objetos que hay alrededor, tenemos unos datos de posición del satelite, generados por un simulador de orbitas de arduino, que nos sirven para poder visualizar la orbita a través de una grafica en la interfaz gráfica. 
-Los datos de temperatura y humedad nos aparecen en una gráfico de la interfaz, el color azul indica la temperatura y el color rojo la humedad, aunque para poder visualizar la temperatura o la humedad hay que detener el envio de los otros datos. 
+El sistema está compuesto por tres partes principales: el satélite, la estación de tierra y la interfaz gráfica. El satélite se encarga de recoger los datos del entorno, la estación de tierra recibe esta información y la retransmite, y la interfaz gráfica permite al usuario visualizar los datos y controlar el sistema de forma sencilla.
+
+El satélite es capaz de enviar periódicamente datos de temperatura, humedad y distancia. Para ello cuenta con un sensor de temperatura y humedad, y con un sensor de ultrasonidos montado sobre un servomotor que realiza un barrido de 180 grados. Este sistema permite medir la distancia a los objetos que rodean al satélite en diferentes direcciones.
+
+Los datos de distancia obtenidos se envían a la estación de tierra mediante comunicación LoRa y posteriormente a la interfaz gráfica, donde se representan en una gráfica con forma de radar, facilitando la visualización del entorno del satélite.
+
+Por otro lado, el satélite incorpora un simulador de órbita programado en Arduino, que genera datos de posición a lo largo del tiempo. Estas coordenadas se utilizan en la interfaz gráfica para representar la órbita del satélite mediante una gráfica tridimensional, permitiendo observar su movimiento alrededor de la Tierra. Además, los datos de temperatura y humedad se muestran en la interfaz mediante una gráfica temporal, donde la temperatura aparece en color azul y la humedad en color rojo. De este modo, el usuario puede supervisar fácilmente las condiciones del entorno.
+
+Por último, esta versión del proyecto integra sensores, comunicación inalámbrica, simulación orbital y visualización gráfica en tiempo real, consiguiendo un sistema más completo, interactivo y cercano al funcionamiento de un satélite real.
 
 **Código Relevante Versión 4**
 
