@@ -23,6 +23,24 @@ except ImportError:
 
 LOG_FILE = "eventos.log"
 
+def enviar_con_ack(comando, intentos=5, espera_ack=0.8):
+    for i in range(intentos):
+        try:
+            print(f"[{i+1}/{intentos}] Enviando: {comando}")
+            ser.write((comando + "\n").encode())
+            t0 = time.time()
+            while time.time() - t0 < espera_ack:
+                if ser.in_waiting > 0:
+                    respuesta = ser.readline().decode(errors="ignore").strip()
+                    if respuesta == "OK":
+                        print("Confirmación recibida")
+                        return True
+            time.sleep(espera_ack)
+        except Exception as e:
+            print("Error enviando comando:", e)
+    print("No se recibió confirmación")
+    return False
+
 def registrar_evento(codigo, tipo, mensaje):
     fecha = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     linea = f"{fecha}\t{codigo}\t{tipo}\t{mensaje}\n"
@@ -326,13 +344,22 @@ def radar_manual():
     slider.set(0)
     slider.pack(pady=20)
 
+ultimo_angulo_enviado = None
+
 def enviar_direccion(val):
+    global ultimo_angulo_enviado
     val = float(val)
     angulo = int(90 + val)
     angulo = max(0, min(180, angulo))
     if ser is not None:
-        ser.write(f"RM:{angulo}\n".encode())
-        print("Enviado:", angulo)
+        if ultimo_angulo_enviado is None or abs(angulo - ultimo_angulo_enviado) >= 3:
+            ultimo_angulo_enviado = angulo
+            try:
+                ser.write(f"RM:{angulo}\n".encode())  # envío directo, sin esperar OK
+            except Exception as e:
+                print("Error enviando comando:", e)
+
+
 
 
 # ---------------- ORBITA 3D ----------------
@@ -493,7 +520,14 @@ def TEMPClick():
 def MEDIAClick():
     if ser: ser.write(b"M\n")
     registrar_evento_por_codigo(210)
-
+def RADARStopClick():
+    if ser:
+        threading.Thread(
+            target=enviar_con_ack,
+            args=("RS",),
+            daemon=True
+        ).start()
+    registrar_evento_por_codigo(208)
 def HUMClick():
     global grafica_hum
     grafica_hum = True
@@ -516,12 +550,17 @@ def STOPHClick():
 
 def RADARClick():
     init_radar()
-    if ser: ser.write(b"R3\n")
+    if ser: 
+        threading.Thread(
+            target=enviar_con_ack,
+            args=("R3",),   # o "RA" si prefieres ese comando
+            daemon=True
+        ).start()
     registrar_evento_por_codigo(207)
+
 
 def RADARMClick():
     radar_manual()
-    init_radar()
 
 def ORBITClick():
     global mapaEncendido, canvas_mapa, orbitaEncendida
@@ -572,11 +611,12 @@ Button(window,text="RADAR", command=RADARClick, bg='green',fg='white',**botones)
 Button(window,text="RADAR MANUAL", command=RADARMClick, bg='green',fg='white',**botones).grid(row=2,column=4,sticky=N+S+E+W)
 
 # Botones de Orbita y Mapa juntos
-Button(window,text="ORBITA 3D", command=ORBITClick, bg='orange',fg='white',**botones).grid(row=2,column=5,sticky=N+S+E+W)
-Button(window,text="MAPA 2D", command=MAPAClick, bg='cyan',fg='black',**botones).grid(row=2,column=6,sticky=N+S+E+W)
+Button(window,text="ÓRBITA 3D", command=ORBITClick, bg='orange',fg='white',**botones).grid(row=5,column=5,sticky=N+S+E+W)
+Button(window,text="MAPA 2D", command=MAPAClick, bg='cyan',fg='black',**botones).grid(row=5,column=6,sticky=N+S+E+W)
 
 Button(window, text="MEDIA ARDUINO", command=MEDIAClick, bg='purple', fg='white', **botones).grid(row=3, column=0, sticky=N+S+E+W)
 Button(window, text="ABRIR COMANDOS", command=abrir_fichero_comandos, bg='gray', fg='white', **botones).grid(row=3, column=1, sticky=N+S+E+W)
+Button(window, text="PARAR RADAR", command=RADARStopClick, bg='gray', fg='white', **botones).grid(row=2, column=5, sticky=N+S+E+W)
 
 plot_frame = Frame(window, bd=2, relief='groove')
 plot_frame.grid(row=4,column=0,columnspan=3,sticky=N+S+E+W,padx=5,pady=5)
@@ -620,14 +660,18 @@ def enviar_comando_usuario():
         registrar_evento(401, "USUARIO", texto)
         entrada_comando.delete(0, END)
         print("Comando guardado:", texto)
-
+def RADARResumeClick():
+    if ser:
+        ser.write(b"RR\n")
+    registrar_evento_por_codigo(206) 
 entrada_comando.bind("<Return>", lambda event: enviar_comando_usuario())
 
 Button(frame_comando, text="GUARDAR",
        command=enviar_comando_usuario,
        bg='purple', fg='white',
        font=("Arial", 9, "bold")).pack(side=LEFT, padx=5)
-
+Button(window, text="REANUDAR RADAR", command=RADARResumeClick,
+       bg='green', fg='white', **botones).grid(row=2, column=6, sticky=N+S+E+W)
 
 
 
