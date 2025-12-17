@@ -7,6 +7,10 @@ import re
 import matplotlib
 import datetime
 from tkinter import filedialog
+from tkinter import simpledialog
+from tkinter import ttk, PhotoImage
+
+
 
 from mpl_toolkits.mplot3d import Axes3D  # Necesario para la proyección 3D
 import numpy as np  # Necesario para generar la esfera de la Tierra
@@ -47,6 +51,107 @@ def registrar_evento(codigo, tipo, mensaje):
     with open(LOG_FILE, "a") as f:
         f.write(linea)
     print("Evento registrado:", linea.strip())
+# ---------------------- MULTI-IDIOMA ----------------------
+
+traducciones = {
+    "es": {
+        "version": "VERSIÓN 4",
+        "temp": "TEMP",
+        "hum": "HUM",
+        "radar": "RADAR",
+        "radar_manual": "RADAR MANUAL",
+        "orbit": "ÓRBITA 3D",
+        "version": "VERSIÓN 4",
+        "titulo": "INTERFAZ VERSIÓN 4",
+        "map": "MAPA 2D",
+        "temp_stop": "STOPTEMP",
+        "hum_stop": "STOPHUM",
+        "abrir_comandos": "ABRIR COMANDOS",
+        "parar_radar": "PARAR RADAR",
+        "reanudar_radar": "REANUDAR RADAR",
+        "limite_temp": "Límite Temp (ºC):",
+        "fijar": "FIJAR",
+        "escribir_comando": "Escribir comando/nota:",
+        "guardar": "GUARDAR",
+        "freq_orbita": "FREQ ORBITA"
+    },
+    "en": {
+        "version": "VERSION 4",
+        "temp": "TEMP",
+        "temp_stop": "STOP TEMP",
+        "hum_stop": "STOP HUM",
+        "hum": "HUM",
+        "radar": "RADAR",
+        "radar_manual": "MANUAL RADAR",
+        "orbit": "3D ORBIT",
+        "version": "VERSION 4",
+        "titulo": "INTERFACE VERSION 4",
+        "map": "2D MAP",
+        "abrir_comandos": "OPEN COMMANDS",
+        "parar_radar": "STOP RADAR",
+        "reanudar_radar": "RESUME RADAR",
+        "limite_temp": "Temp Limit (ºC):",
+        "fijar": "SET",
+        "escribir_comando": "Enter command/note:",
+        "guardar": "SAVE",
+        "freq_orbita": "ORBIT FREQ"
+    },
+    "zh": {  # chino simplificado
+        "version": "版本 4",
+        "temp": "温度",
+         "temp_stop": "停止温度",
+        "hum_stop": "停止湿度",
+        "hum": "湿度",
+        "radar": "雷达",
+        "radar_manual": "手动雷达",
+        "orbit": "3D轨道",
+        "map": "2D地图",
+        "abrir_comandos": "打开命令",
+        "parar_radar": "停止雷达",
+        "version": "版本 4",
+        "titulo": "界面 版本 4",
+        "reanudar_radar": "恢复雷达",
+        "limite_temp": "温度限制(ºC):",
+        "fijar": "设定",
+        "escribir_comando": "输入命令/笔记:",
+        "guardar": "保存",
+        "freq_orbita": "轨道频率"
+    }
+}
+
+idioma = "es"  # <-- Aquí eliges el idioma ("es", "en", "zh", etc.)
+# -----------------------------------------------------------
+def actualizar_idioma():
+    """Actualiza todos los textos de la interfaz según el idioma seleccionado"""
+    # Etiqueta versión
+    window.title(traducciones[idioma]["titulo"])
+    
+    # Etiqueta versión
+    label_version.config(text=traducciones[idioma]["version"])    
+    # Botones principales
+    btn_temp.config(text=traducciones[idioma]["temp"])
+    btn_stopt.config(text=traducciones[idioma]["temp_stop"])
+    btn_hum.config(text=traducciones[idioma]["hum"])
+    btn_stoph.config(text=traducciones[idioma]["hum_stop"])
+    btn_radar.config(text=traducciones[idioma]["radar"])
+    btn_radar_manual.config(text=traducciones[idioma]["radar_manual"])
+    btn_orbit.config(text=traducciones[idioma]["orbit"])
+    btn_map.config(text=traducciones[idioma]["map"])
+    btn_abrir_comandos.config(text=traducciones[idioma]["abrir_comandos"])
+    btn_parar_radar.config(text=traducciones[idioma]["parar_radar"])
+    btn_reanudar_radar.config(text=traducciones[idioma]["reanudar_radar"])
+    btn_freq_orbita.config(text=traducciones[idioma]["freq_orbita"])
+    btn_guardar_comando.config(text=traducciones[idioma]["guardar"])
+    btn_fijar.config(text=traducciones[idioma]["fijar"])
+
+
+    # Panel alarma
+    label_limite_temp.config(text=traducciones[idioma]["limite_temp"])
+    btn_fijar.config(text=traducciones[idioma]["fijar"])
+    
+    # Panel comando
+    label_comando.config(text=traducciones[idioma]["escribir_comando"])
+    btn_guardar_comando.config(text=traducciones[idioma]["guardar"])
 
 eventos = {
     # COMANDOS
@@ -59,6 +164,7 @@ eventos = {
     207: ("COMANDO", "Movimiento manual servo (RM:x)"),
     208: ("COMANDO", "Parar todos los sensores (S)"),
     209: ("COMANDO", "Reanudar todos los sensores (R)"),
+    212: ("COMANDO", "Cambio frecuencia orbita (FREQ)"),
     210: ("COMANDO", "Iniciar temperatura normal (R1)"),
     211: ("COMANDO", "Parar temperatura desde interfaz (S1)"),
     # ALARMAS
@@ -143,6 +249,8 @@ canvas_temp = None
 media_arduino = None
 fig_temp = None
 ax_temp = None
+solicitud_media_popup = False
+
 
 canvas_radar = None
 fig_radar = None
@@ -194,7 +302,8 @@ def lector_serial():
                 if ' 4:' in linea:
                     try: angulos.append(float(linea.split(' 4:')[1].split()[0]))
                     except: pass
-
+                # Procesar media de Arduino
+                
                 # -------- POSICIÓN --------
                 if linea.startswith("POS"):
                     valores = re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", linea)
@@ -204,17 +313,7 @@ def lector_serial():
                         z_vals.append(float(valores[2]))
                         if len(x_vals) > 500:
                             x_vals.pop(0); y_vals.pop(0); z_vals.pop(0)
-
-                # -------- MEDIA --------
-                if linea.startswith("MEDIA:"):
-                    try:
-                        valor = float(linea.split(":")[1])
-                        media_arduino = valor
-                        medias_arduino.append(valor)
-                        media_label.config(text=f"Media: {valor:.2f} °C")
-                        mostrar_media_popup(valor)
-                    except:
-                        pass
+                
 
         except Exception as e:
             print("Error lector_serial:", e)
@@ -231,6 +330,21 @@ def init_grafica_temp():
         ax_temp.set_facecolor('#FFFFFF')
         canvas_temp = FigureCanvasTkAgg(fig_temp, master=plot_frame)
         canvas_temp.get_tk_widget().pack(fill='both', expand=True)
+def FREQ_ORBITAClick():
+    valor = simpledialog.askinteger(
+        "Frecuencia Orbita", 
+        "Introduce el tiempo (ms) entre actualizaciones de órbita:\n(Ej: 1000 = 1 segundo)",
+        parent=window,
+        minvalue=50,
+        maxvalue=10000
+    )
+
+    if valor is not None:
+        if ser:
+            comando = f"FREQ:{valor}\n"
+            ser.write(comando.encode())
+            print(f"Enviando nueva frecuencia de órbita: {valor} ms")
+            registrar_evento(212, "USUARIO", f"Frecuencia órbita cambiada a {valor} ms")
 
 linea_temp = None
 linea_media = None
@@ -492,21 +606,20 @@ def SET_ALARMAClick():
             registrar_evento(401, "USUARIO", f"Límite alarma cambiado a {val}")
     except ValueError:
         print("Error: Introduce un número válido para la alarma")
+def FREQ_ORBITAClick():
+    valor = simpledialog.askinteger("Frecuencia Orbita", 
+                                    "Introduce el tiempo (ms) entre actualizaciones de órbita:\n(Ej: 1000 = 1 segundo)",
+                                    parent=window,
+                                    minvalue=50, maxvalue=10000)
+    
+    if valor is not None:
+        if ser:
+            comando = f"FREQ:{valor}\n"
+            ser.write(comando.encode())
+            print(f"Enviando nueva frecuencia de órbita: {valor} ms")
+            registrar_evento(212, "USUARIO", f"Frecuencia órbita cambiada a {valor} ms")
 
-def mostrar_media_popup(valor):
-    win = Toplevel(window)
-    win.title("Media de Temperatura")
-    win.geometry("250x120")
-    win.resizable(False, False)
-
-    Label(win, text="Media Temperatura (ºC)",
-          font=("Arial", 12, "bold")).pack(pady=10)
-
-    Label(win, text=f"{valor:.2f} ºC",
-          font=("Arial", 14),
-          fg="blue").pack(pady=5)
-
-    Button(win, text="Cerrar", command=win.destroy).pack(pady=5)
+# Función que crea el popup con la media
 
 # ---------------- BOTONES Y GUI ----------------
 def TEMPClick():
@@ -518,8 +631,13 @@ def TEMPClick():
     registrar_evento_por_codigo(204)
 
 def MEDIAClick():
-    if ser: ser.write(b"M\n")
-    registrar_evento_por_codigo(210)
+    global solicitud_media_popup
+    if ser:
+        ser.write(b"M\n")  # pide la media al Arduino
+    solicitud_media_popup = True
+    registrar_evento_por_codigo(210)  # código de evento para registro
+    
+
 def RADARStopClick():
     if ser:
         threading.Thread(
@@ -596,27 +714,52 @@ window.geometry("1800x800") # Altura reducida
 window.title("INTERFAZ VERSION 4") 
 window.rowconfigure([0,1,2,3,4,5], weight=1)
 window.columnconfigure([0,1,2,3,4,5,6], weight=1)
+idiomas_disponibles = ["es", "en", "zh"]
 
-Label(window, text="VERSION 4", font=("Times New Roman", 20, "bold")).grid(row=0,column=0,columnspan=7,sticky=N+S+E+W)
+def cambiar_idioma(valor):
+    global idioma
+    idioma = valor
+    actualizar_idioma()
+
+# Crear OptionMenu
+menu_idioma = StringVar(value=idioma)
+OptionMenu(window, menu_idioma, *idiomas_disponibles, command=cambiar_idioma).grid(row=1, column=0, columnspan=2, sticky=W, padx=5, pady=5)
+
+label_version = Label(window, 
+                      text=traducciones[idioma]["version"],  # texto inicial según idioma por defecto
+                      font=("Times New Roman", 20, "bold"))
+label_version.grid(row=0, column=0, columnspan=7, sticky=N+S+E+W)
 
 botones = {'width':12,'height':2,'font':("Arial",11,"bold"),'relief':'raised','bd':3}
-Button(window,text="TEMP", command=TEMPClick, bg='blue',fg='white',**botones).grid(row=2,column=0,sticky=N+S+E+W)
-Button(window,text="STOPTEMP", command=STOPTClick, bg='blue',fg='white',**botones).grid(row=5,column=0,sticky=N+S+E+W)
-Button(window,text="HUM", command=HUMClick, bg='red',fg='white',**botones).grid(row=2,column=1,sticky=N+S+E+W)
-Button(window,text="STOPHUM", command=STOPHClick, bg='red',fg='white',**botones).grid(row=5,column=1,sticky=N+S+E+W)
-media_label = Label(window, text="Media: --", font=("Arial",12), bg='white', relief='sunken')
-media_label.grid(row=5, column=2, sticky=N+S+E+W, padx=5, pady=5)
+btn_temp = Button(window, text=traducciones[idioma]["temp"], command=TEMPClick, bg='blue', fg='white', **botones)
+btn_temp.grid(row=2, column=0, sticky=N+S+E+W)
 
-Button(window,text="RADAR", command=RADARClick, bg='green',fg='white',**botones).grid(row=2,column=3,sticky=N+S+E+W)
-Button(window,text="RADAR MANUAL", command=RADARMClick, bg='green',fg='white',**botones).grid(row=2,column=4,sticky=N+S+E+W)
+btn_stopt = Button(window, text=traducciones[idioma]["temp_stop"], command=STOPTClick, bg='blue', fg='white', **botones)
+btn_stopt.grid(row=3, column=0, sticky=N+S+E+W)
 
-# Botones de Orbita y Mapa juntos
-Button(window,text="ÓRBITA 3D", command=ORBITClick, bg='orange',fg='white',**botones).grid(row=5,column=5,sticky=N+S+E+W)
-Button(window,text="MAPA 2D", command=MAPAClick, bg='cyan',fg='black',**botones).grid(row=5,column=6,sticky=N+S+E+W)
+btn_hum = Button(window, text=traducciones[idioma]["hum"], command=HUMClick, bg='red', fg='white', **botones)
+btn_hum.grid(row=2, column=1, sticky=N+S+E+W)
 
-Button(window, text="MEDIA ARDUINO", command=MEDIAClick, bg='purple', fg='white', **botones).grid(row=3, column=0, sticky=N+S+E+W)
-Button(window, text="ABRIR COMANDOS", command=abrir_fichero_comandos, bg='gray', fg='white', **botones).grid(row=3, column=1, sticky=N+S+E+W)
-Button(window, text="PARAR RADAR", command=RADARStopClick, bg='gray', fg='white', **botones).grid(row=2, column=5, sticky=N+S+E+W)
+btn_stoph = Button(window, text=traducciones[idioma]["hum_stop"], command=STOPHClick, bg='red', fg='white', **botones)
+btn_stoph.grid(row=3, column=1, sticky=N+S+E+W)
+
+btn_radar = Button(window, text=traducciones[idioma]["radar"], command=RADARClick, bg='green', fg='white', **botones)
+btn_radar.grid(row=2, column=2, sticky=N+S+E+W)
+
+btn_radar_manual = Button(window, text=traducciones[idioma]["radar_manual"], command=RADARMClick, bg='green', fg='white', **botones)
+btn_radar_manual.grid(row=2, column=3, sticky=N+S+E+W)
+
+btn_orbit = Button(window, text=traducciones[idioma]["orbit"], command=ORBITClick, bg='orange', fg='white', **botones)
+btn_orbit.grid(row=5, column=0, sticky=N+S+E+W)
+
+btn_map = Button(window, text=traducciones[idioma]["map"], command=MAPAClick, bg='orange', fg='white', **botones)
+btn_map.grid(row=5, column=1, sticky=N+S+E+W)
+
+btn_abrir_comandos = Button(window, text=traducciones[idioma]["abrir_comandos"], command=abrir_fichero_comandos, bg='gray', fg='white', **botones)
+btn_abrir_comandos.grid(row=5, column=3, sticky=N+S+E+W)
+
+btn_parar_radar = Button(window, text=traducciones[idioma]["parar_radar"], command=RADARStopClick, bg='green', fg='white', **botones)
+btn_parar_radar.grid(row=2, column=4, sticky=N+S+E+W)
 
 plot_frame = Frame(window, bd=2, relief='groove')
 plot_frame.grid(row=4,column=0,columnspan=3,sticky=N+S+E+W,padx=5,pady=5)
@@ -636,20 +779,27 @@ frame_alarma = Frame(window, bd=2, relief='groove', bg="#eeeeee")
 # Lo colocamos en la fila 3, ocupando las columnas 2 y 3
 frame_alarma.grid(row=3, column=2, columnspan=2, sticky=N+S+E+W, padx=5, pady=2)
 
-Label(frame_alarma, text="Límite Temp (ºC):", bg="#eeeeee", font=("Arial", 10, "bold")).pack(side=LEFT, padx=5)
-
+label_limite_temp = Label(frame_alarma, text=traducciones[idioma]["limite_temp"], bg="#eeeeee", font=("Arial", 10, "bold"))
+label_limite_temp.pack(side=LEFT, padx=5)
 entrada_limite = Entry(frame_alarma, width=5, font=("Arial", 11))
 entrada_limite.pack(side=LEFT, padx=5)
 entrada_limite.insert(0, "30") # Valor inicial
 
-Button(frame_alarma, text="FIJAR", command=SET_ALARMAClick, bg='red', fg='white', font=("Arial", 9, "bold")).pack(side=LEFT, padx=5)
-# ---------------- PANEL COMANDOS DE USUARIO ----------------
+btn_fijar = Button(
+    frame_alarma,
+    text=traducciones[idioma]["fijar"],
+    command=SET_ALARMAClick,
+    bg='red',
+    fg='white',
+    font=("Arial", 9, "bold")
+)
+btn_fijar.pack(side=LEFT, padx=5)# ---------------- PANEL COMANDOS DE USUARIO ----------------
 frame_comando = Frame(window, bd=2, relief='groove', bg="#dddddd")
 frame_comando.grid(row=3, column=4, columnspan=3,
                    sticky=N+S+E+W, padx=5, pady=2)
 
-Label(frame_comando, text="Escribir comando/nota:",
-      bg="#dddddd", font=("Arial", 10, "bold")).pack(side=LEFT, padx=5)
+label_comando = Label(frame_comando, text=traducciones[idioma]["escribir_comando"], bg="#dddddd", font=("Arial", 10, "bold"))
+label_comando.pack(side=LEFT, padx=5)
 
 entrada_comando = Entry(frame_comando, width=30, font=("Arial", 11))
 entrada_comando.pack(side=LEFT, padx=5)
@@ -666,14 +816,20 @@ def RADARResumeClick():
     registrar_evento_por_codigo(206) 
 entrada_comando.bind("<Return>", lambda event: enviar_comando_usuario())
 
-Button(frame_comando, text="GUARDAR",
-       command=enviar_comando_usuario,
-       bg='purple', fg='white',
-       font=("Arial", 9, "bold")).pack(side=LEFT, padx=5)
-Button(window, text="REANUDAR RADAR", command=RADARResumeClick,
-       bg='green', fg='white', **botones).grid(row=2, column=6, sticky=N+S+E+W)
+btn_guardar_comando = Button(
+    frame_comando,
+    text=traducciones[idioma]["guardar"],
+    command=enviar_comando_usuario,
+    bg='purple',
+    fg='white',
+    font=("Arial", 9, "bold")
+)
+btn_guardar_comando.pack(side=LEFT, padx=5)
+btn_reanudar_radar = Button(window, text=traducciones[idioma]["reanudar_radar"], command=RADARResumeClick, bg='green', fg='white', **botones)
+btn_reanudar_radar.grid(row=2, column=5, sticky=N+S+E+W)
 
-
+btn_freq_orbita = Button(window, text=traducciones[idioma]["freq_orbita"], command=FREQ_ORBITAClick, bg='pink', fg='black', width=12, height=2)
+btn_freq_orbita.grid(row=5, column=2, sticky=N+S+E+W)
 
 
 # ---------------- INICIAR HILO SERIAL ----------------
