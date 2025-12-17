@@ -722,6 +722,7 @@ Los datos de temperatura y humedad nos aparecen en una gráfico de la interfaz, 
 - La órbita mostrada en la interfaz en 3D.
 - Poder cambiar el idioma de la interfaz. Tenemos la opción de tenerlo en castellano, inglés o en chino.
 - Cajas impreses en 3d para la estación de tierra y para el satélite.
-  https://www.tinkercad.com/things/03zUn7bJhpA-satelite?sharecode=7c37xDYE8clnHKsiDSPyY3ky6TD5HbNhtTHXYAx4EUI
+
+   https://www.tinkercad.com/things/03zUn7bJhpA-satelite?sharecode=7c37xDYE8clnHKsiDSPyY3ky6TD5HbNhtTHXYAx4EUI
   https://www.tinkercad.com/things/28N9JQKFnjQ-tierra?sharecode=iBcDcr7fODBJKSEA2U5JFaFap1RKmUYZWhpY3S-DtNg
   
