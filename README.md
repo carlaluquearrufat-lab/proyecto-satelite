@@ -719,7 +719,7 @@ Los datos de temperatura y humedad nos aparecen en una gráfico de la interfaz, 
 
 # Complementos añadidos en la versión 4: 
 - Pantalla LCD 1602 en la estación de tierra que nos escribe algunos mensajes como "Conexión establecida".
-- La órbita mostrada en la interfaz en 3D.
+- La órbita mostrada en la interfaz en 3D y un GroundTrack
 - Poder cambiar el idioma de la interfaz. Tenemos la opción de tenerlo en castellano, inglés o en chino.
 - Cajas impreses en 3d para la estación de tierra y para el satélite.
 
