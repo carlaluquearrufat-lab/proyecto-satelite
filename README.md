@@ -735,7 +735,6 @@ Por último, esta versión del proyecto integra sensores, comunicación inalámb
   https://www.tinkercad.com/things/03zUn7bJhpA-satelite?sharecode=7c37xDYE8clnHKsiDSPyY3ky6TD5HbNhtTHXYAx4EUI
   https://www.tinkercad.com/things/28N9JQKFnjQ-tierra?sharecode=iBcDcr7fODBJKSEA2U5JFaFap1RKmUYZWhpY3S-DtNg
 
-# Video final:
-https://www.youtube.com/watch?v=aLpIgWeHwS0
+**Video final:** https://www.youtube.com/watch?v=aLpIgWeHwS0
 
   
