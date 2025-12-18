@@ -736,5 +736,6 @@ Por último, esta versión del proyecto integra sensores, comunicación inalámb
   https://www.tinkercad.com/things/28N9JQKFnjQ-tierra?sharecode=iBcDcr7fODBJKSEA2U5JFaFap1RKmUYZWhpY3S-DtNg
 
 # Video final:
+https://www.youtube.com/watch?v=aLpIgWeHwS0
 
   
